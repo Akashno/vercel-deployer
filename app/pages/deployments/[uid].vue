@@ -19,10 +19,29 @@ interface DeploymentDetail {
   creator: string | null
 }
 
+interface LogLine {
+  type: string
+  text: string
+  date: number | null
+}
+
 const route = useRoute()
 const uid = route.params.uid as string
 
 const { data, pending, error } = await useFetch<DeploymentDetail>(`/api/deployments/${uid}`)
+
+const isLogsOpen = ref(false)
+const { data: logs, pending: logsPending, execute: fetchLogs } = useFetch<LogLine[]>(
+  `/api/deployments/${uid}/logs`,
+  { immediate: false, server: false },
+)
+
+async function toggleLogs() {
+  isLogsOpen.value = !isLogsOpen.value
+  if (isLogsOpen.value && !logs.value) {
+    await fetchLogs()
+  }
+}
 
 const stateClass: Record<string, string> = {
   READY: 'state-ready',
@@ -39,20 +58,27 @@ function getBadgeClass(state: string) {
 
 const dtf = new Intl.DateTimeFormat('en', {
   month: 'short', day: 'numeric',
-  hour: '2-digit', minute: '2-digit', second: '2-digit',
+  hour: '2-digit', minute: '2-digit',
   hour12: false,
 })
 
 function formatTs(ts: number | null): string {
-  return ts ? dtf.format(new Date(ts)) : '—'
+  return ts ? dtf.format(new Date(ts)) : ''
 }
 
 function formatDuration(ms: number | null): string {
-  if (!ms) return '—'
-  if (ms < 1000) return `${ms}ms`
+  if (!ms) return ''
   const s = Math.round(ms / 1000)
   if (s < 60) return `${s}s`
   return `${Math.floor(s / 60)}m ${s % 60}s`
+}
+
+const copied = ref<string | null>(null)
+
+async function copy(value: string, key: string) {
+  await navigator.clipboard.writeText(value)
+  copied.value = key
+  setTimeout(() => { copied.value = null }, 1500)
 }
 </script>
 
@@ -73,6 +99,7 @@ function formatDuration(ms: number | null): string {
     </div>
 
     <template v-else-if="data">
+      <!-- Header -->
       <div class="detail-header">
         <div class="detail-title-row">
           <span :class="['badge', getBadgeClass(data.state)]">{{ data.state }}</span>
@@ -80,79 +107,72 @@ function formatDuration(ms: number | null): string {
           <span v-if="data.target === 'production'" class="prod-tag">Production</span>
         </div>
         <div class="detail-actions">
-          <a :href="`https://${data.url}`" target="_blank" rel="noopener" class="action-btn primary">
-            Visit ↗
-          </a>
-          <a v-if="data.inspectorUrl" :href="data.inspectorUrl" target="_blank" rel="noopener" class="action-btn">
-            Vercel Dashboard ↗
-          </a>
+          <a :href="`https://${data.url}`" target="_blank" rel="noopener" class="action-btn primary">Visit ↗</a>
+          <a v-if="data.inspectorUrl" :href="data.inspectorUrl" target="_blank" rel="noopener" class="action-btn">Vercel Dashboard ↗</a>
         </div>
       </div>
 
-      <div class="cards">
-        <div class="card">
-          <div class="card-title">Deployment URL</div>
-          <a :href="`https://${data.url}`" target="_blank" rel="noopener" class="mono-link">
-            {{ data.url }}
-          </a>
+      <!-- Meta strip -->
+      <div class="meta-strip">
+        <!-- Row 1: URL -->
+        <div class="meta-row">
+          <span class="meta-label">Preview URL</span>
+          <a :href="`https://${data.url}`" target="_blank" rel="noopener" class="meta-url">{{ data.url }}</a>
+          <button class="copy-btn" :class="{ copied: copied === 'url' }" @click="copy(data.url, 'url')">
+            {{ copied === 'url' ? 'Copied!' : 'Copy' }}
+          </button>
         </div>
-
-        <div class="card">
-          <div class="card-title">Git</div>
-          <div v-if="data.branch" class="meta-row">
-            <span class="meta-label">Branch</span>
-            <a v-if="data.repoUrl" :href="`${data.repoUrl}/tree/${data.branch}`" target="_blank" rel="noopener" class="mono-link">{{ data.branch }}</a>
-            <code v-else class="mono">{{ data.branch }}</code>
-          </div>
-          <div v-if="data.commitSha" class="meta-row">
-            <span class="meta-label">Commit</span>
-            <a v-if="data.repoUrl" :href="`${data.repoUrl}/commit/${data.commitSha}`" target="_blank" rel="noopener" class="mono-link sha">{{ data.commitSha.slice(0, 7) }}</a>
-            <code v-else class="sha mono">{{ data.commitSha.slice(0, 7) }}</code>
-          </div>
-          <div v-if="data.commitMessage" class="meta-row">
-            <span class="meta-label">Message</span>
-            <span class="commit-msg">{{ data.commitMessage }}</span>
-          </div>
-          <div v-if="data.commitAuthor" class="meta-row">
-            <span class="meta-label">Author</span>
-            <span class="meta-value">{{ data.commitAuthor }}</span>
-          </div>
+        <!-- Row 2: Branch -->
+        <div v-if="data.branch" class="meta-row">
+          <span class="meta-label">Branch</span>
+          <a v-if="data.repoUrl" :href="`${data.repoUrl}/tree/${data.branch}`" target="_blank" rel="noopener" class="git-link">{{ data.branch }}</a>
+          <span v-else class="git-value">{{ data.branch }}</span>
+          <button class="copy-btn small" :class="{ copied: copied === 'branch' }" @click="copy(data.branch, 'branch')">
+            {{ copied === 'branch' ? '✓' : 'Copy' }}
+          </button>
         </div>
-
-        <div class="card">
-          <div class="card-title">Timeline</div>
-          <div class="meta-row">
-            <span class="meta-label">Created</span>
-            <span class="meta-value">{{ formatTs(data.createdAt) }}</span>
-          </div>
-          <div v-if="data.buildingAt" class="meta-row">
-            <span class="meta-label">Build started</span>
-            <span class="meta-value">{{ formatTs(data.buildingAt) }}</span>
-          </div>
-          <div v-if="data.readyAt" class="meta-row">
-            <span class="meta-label">Ready at</span>
-            <span class="meta-value">{{ formatTs(data.readyAt) }}</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">Build duration</span>
-            <span class="meta-value">{{ formatDuration(data.buildDurationMs) }}</span>
-          </div>
+        <!-- Row 3: Commit SHA + message -->
+        <div v-if="data.commitSha" class="meta-row">
+          <span class="meta-label">Commit ID</span>
+          <a v-if="data.repoUrl" :href="`${data.repoUrl}/commit/${data.commitSha}`" target="_blank" rel="noopener" class="sha-badge">{{ data.commitSha.slice(0, 7) }}</a>
+          <code v-else class="sha-badge">{{ data.commitSha.slice(0, 7) }}</code>
+          <button class="copy-btn small" :class="{ copied: copied === 'sha' }" @click="copy(data.commitSha, 'sha')">
+            {{ copied === 'sha' ? '✓' : 'Copy' }}
+          </button>
+          <span v-if="data.commitMessage" class="git-sep">·</span>
+          <span v-if="data.commitMessage" class="git-msg">{{ data.commitMessage }}</span>
         </div>
+        <!-- Row 4: Author + date -->
+        <div v-if="data.commitAuthor || formatTs(data.createdAt)" class="meta-row">
+          <span class="meta-label">Author</span>
+          <span class="git-meta">{{ [data.commitAuthor, formatTs(data.createdAt), formatDuration(data.buildDurationMs) ? `built in ${formatDuration(data.buildDurationMs)}` : ''].filter(Boolean).join(' · ') }}</span>
+        </div>
+      </div>
 
-        <div class="card">
-          <div class="card-title">Info</div>
-          <div v-if="data.creator" class="meta-row">
-            <span class="meta-label">Deployed by</span>
-            <span class="meta-value">{{ data.creator }}</span>
-          </div>
-          <div v-if="data.regions.length" class="meta-row">
-            <span class="meta-label">Regions</span>
-            <span class="meta-value mono">{{ data.regions.join(', ') }}</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">UID</span>
-            <code class="mono uid-code">{{ data.uid }}</code>
-          </div>
+      <!-- Build Logs accordion -->
+      <div class="logs-section">
+        <button class="logs-toggle" @click="toggleLogs">
+          <span class="logs-title">Build Logs</span>
+          <span class="logs-toggle-right">
+            <span v-if="logsPending" class="logs-loading">
+              <span class="spinner-inline" /> fetching…
+            </span>
+            <span v-else-if="logs" class="logs-count">{{ logs.length }} lines</span>
+            <span class="logs-chevron" :class="{ open: isLogsOpen }">›</span>
+          </span>
+        </button>
+        <div v-if="isLogsOpen" class="logs-terminal">
+          <div v-if="logsPending" class="logs-empty">Loading logs…</div>
+          <div v-else-if="!logs?.length" class="logs-empty">No build logs available.</div>
+          <template v-else>
+            <div
+              v-for="(line, i) in logs"
+              :key="i"
+              :class="['log-line', `log-${line.type}`]"
+            >
+              <span class="log-text">{{ line.text }}</span>
+            </div>
+          </template>
         </div>
       </div>
     </template>
@@ -161,14 +181,12 @@ function formatDuration(ms: number | null): string {
 
 <style scoped>
 .page {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
 }
 
-.breadcrumb {
-  margin-bottom: 1.5rem;
-}
+.breadcrumb { margin-bottom: 1.5rem; }
 
 .back-link {
   color: #555;
@@ -176,7 +194,6 @@ function formatDuration(ms: number | null): string {
   text-decoration: none;
   transition: color 0.15s;
 }
-
 .back-link:hover { color: #aaa; }
 
 /* Header */
@@ -186,7 +203,7 @@ function formatDuration(ms: number | null): string {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .detail-title-row {
@@ -218,91 +235,192 @@ function formatDuration(ms: number | null): string {
   text-decoration: none;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-
 .action-btn:hover { border-color: #444; color: #fff; background: #111; }
 .action-btn.primary { background: #0070f3; border-color: #0070f3; color: #fff; }
 .action-btn.primary:hover { background: #005cc5; border-color: #005cc5; }
 
-/* Cards */
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 1rem;
-}
-
-.card {
+/* Meta strip */
+.meta-strip {
   background: #080808;
   border: 1px solid #1a1a1a;
   border-radius: 8px;
-  padding: 1.25rem;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.card-title {
-  color: #555;
+.meta-label {
+  color: #444;
   font-size: 0.6875rem;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  margin-bottom: 1rem;
+  letter-spacing: 0.05em;
+  min-width: 80px;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .meta-row {
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid #111;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
 }
 
-.meta-row:last-child { border-bottom: none; }
-
-.meta-label {
-  color: #555;
-  font-size: 0.8125rem;
-  flex-shrink: 0;
-  width: 110px;
+.meta-url {
+  color: #ededed;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 0.875rem;
+  text-decoration: none;
 }
+.meta-url:hover { text-decoration: underline; color: #fff; }
 
-.meta-value {
-  color: #ccc;
-  font-size: 0.8125rem;
-  word-break: break-all;
-}
+.git-icon { color: #555; font-size: 0.875rem; }
 
-.mono { font-family: 'Menlo', 'Consolas', monospace; }
-
-.mono-link {
-  color: #ccc;
+.git-link, .git-value {
+  color: #aaa;
   font-family: 'Menlo', 'Consolas', monospace;
   font-size: 0.8125rem;
   text-decoration: none;
-  word-break: break-all;
 }
+.git-link:hover { color: #fff; text-decoration: underline; }
 
-.mono-link:hover { color: #fff; text-decoration: underline; }
-
-.sha {
+.sha-badge {
   background: #111;
   border: 1px solid #222;
   border-radius: 3px;
   color: #666;
+  font-family: 'Menlo', 'Consolas', monospace;
   font-size: 0.75rem;
   padding: 0.05rem 0.35rem;
+  text-decoration: none;
 }
+.sha-badge:hover { color: #999; }
 
-.commit-msg {
-  color: #888;
+.git-sep { color: #333; font-size: 0.8125rem; }
+
+.git-msg {
+  color: #666;
   font-size: 0.8125rem;
-  word-break: break-word;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.uid-code {
+.git-meta { color: #444; font-size: 0.75rem; }
+
+/* Copy button */
+.copy-btn {
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  color: #555;
+  cursor: pointer;
+  font-size: 0.6875rem;
+  padding: 0.1rem 0.4rem;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.copy-btn:hover { border-color: #444; color: #aaa; }
+.copy-btn.copied { border-color: #00c950; color: #00c950; }
+.copy-btn.small { font-size: 0.625rem; padding: 0.05rem 0.3rem; }
+
+/* Build logs */
+.logs-section {
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.logs-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: #080808;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.logs-toggle:hover { background: #0d0d0d; }
+
+.logs-section:has(.logs-terminal) .logs-toggle {
+  border-bottom-color: #1a1a1a;
+}
+
+.logs-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.logs-chevron {
+  color: #444;
+  font-size: 1.125rem;
+  line-height: 1;
+  transition: transform 0.2s;
+  transform: rotate(0deg);
+}
+.logs-chevron.open { transform: rotate(90deg); }
+
+.logs-title {
+  color: #555;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.logs-count { color: #333; font-size: 0.75rem; }
+
+.logs-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
   color: #444;
   font-size: 0.75rem;
-  word-break: break-all;
 }
 
-/* Status badge */
+.spinner-inline {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #333;
+  border-top-color: #555;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.logs-terminal {
+  background: #030303;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  max-height: 600px;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+}
+
+.logs-empty {
+  color: #333;
+  padding: 2rem;
+  text-align: center;
+  font-family: inherit;
+}
+
+.log-line { display: flex; }
+.log-text { white-space: pre-wrap; word-break: break-all; }
+
+.log-stdout .log-text { color: #aaa; }
+.log-stderr .log-text { color: #e5484d; }
+.log-command .log-text { color: #4d9ff0; }
+.log-command .log-text::before { content: '$ '; color: #555; }
+
+/* Badge */
 .badge {
   border-radius: 4px;
   display: inline-block;
@@ -331,7 +449,7 @@ function formatDuration(ms: number | null): string {
   padding: 0.1rem 0.375rem;
 }
 
-/* Empty / loading states */
+/* Empty / loading */
 .empty-state {
   align-items: center;
   color: #666;

@@ -2,7 +2,6 @@
 interface Deployment {
   uid: string
   state: string
-  url: string
   target: string | null
   createdAt: number | null
   inspectorUrl: string | null
@@ -23,7 +22,6 @@ const filteredDeployments = computed(() => {
   if (!q) return data.value
   return data.value.filter(d =>
     (d.branch ?? '').toLowerCase().includes(q) ||
-    (d.url ?? '').toLowerCase().includes(q) ||
     (d.commitMessage ?? '').toLowerCase().includes(q) ||
     (d.commitAuthor ?? '').toLowerCase().includes(q),
   )
@@ -78,6 +76,15 @@ watch(autoRefresh, (enabled) => {
 onUnmounted(() => {
   if (timer !== null) clearInterval(timer)
 })
+
+const copied = ref<string | null>(null)
+
+async function copyBranch(e: MouseEvent, branch: string, uid: string) {
+  e.stopPropagation()
+  await navigator.clipboard.writeText(branch)
+  copied.value = uid
+  setTimeout(() => { copied.value = null }, 1500)
+}
 </script>
 
 <template>
@@ -124,9 +131,8 @@ onUnmounted(() => {
       <table class="table">
         <thead>
           <tr>
-            <th>Status</th>
-            <th>URL</th>
             <th>Branch / Commit</th>
+            <th>Status</th>
             <th>Created At</th>
             <th>Commit Author</th>
           </tr>
@@ -134,34 +140,23 @@ onUnmounted(() => {
         <tbody>
           <tr v-for="d in filteredDeployments" :key="d.uid" class="clickable-row" @click="navigateTo(`/deployments/${d.uid}`)" @keydown.enter="navigateTo(`/deployments/${d.uid}`)" tabindex="0">
             <td>
-              <span :class="['badge', getBadgeClass(d.state)]">{{ d.state }}</span>
-            </td>
-            <td>
-              <div class="url-cell">
-                <a
-                  :href="`https://${d.url}`"
-                  target="_blank"
-                  rel="noopener"
-                  class="url-link"
-                  @click.stop
-                >{{ d.url }}</a>
-                <a
-                  v-if="d.inspectorUrl"
-                  :href="d.inspectorUrl"
-                  target="_blank"
-                  rel="noopener"
-                  class="inspector-link"
-                  title="Open in Vercel dashboard"
-                  @click.stop
-                >↗</a>
+              <div v-if="d.branch" class="branch-row">
+                <span class="branch">{{ d.branch }}</span>
+                <button
+                  class="copy-btn"
+                  :class="{ copied: copied === d.uid }"
+                  @click="copyBranch($event, d.branch, d.uid)"
+                >{{ copied === d.uid ? '✓' : 'Copy' }}</button>
               </div>
-              <span v-if="d.target === 'production'" class="prod-tag">Production</span>
-            </td>
-            <td>
-              <div v-if="d.branch" class="branch">{{ d.branch }}</div>
               <div v-if="d.commitSha" class="commit-line">
                 <code class="sha">{{ d.commitSha }}</code>
                 <span class="commit-msg">{{ d.commitMessage }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="status-cell">
+                <span :class="['badge', getBadgeClass(d.state)]">{{ d.state }}</span>
+                <span v-if="d.target === 'production'" class="prod-tag">Production</span>
               </div>
             </td>
             <td class="created-at">{{ formatCreatedAt(d.createdAt) }}</td>
@@ -352,33 +347,12 @@ onUnmounted(() => {
 .state-queued   { background: rgba(0, 112, 243, 0.12); color: #4d9ff0; }
 .state-unknown  { background: rgba(100, 100, 100, 0.1); color: #555; }
 
-/* URL cell */
-.url-cell {
+.status-cell {
   align-items: center;
   display: flex;
-  gap: 0.375rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
-
-.url-link {
-  color: #ccc;
-  font-family: 'Menlo', 'Consolas', monospace;
-  font-size: 0.8125rem;
-  overflow: hidden;
-  text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.url-link:hover { color: #fff; text-decoration: underline; }
-
-.inspector-link {
-  color: #444;
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  text-decoration: none;
-}
-
-.inspector-link:hover { color: #888; }
 
 .prod-tag {
   background: rgba(0, 112, 243, 0.1);
@@ -425,6 +399,27 @@ onUnmounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Branch row with copy */
+.branch-row {
+  align-items: center;
+  display: flex;
+  gap: 0.375rem;
+}
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  color: #555;
+  cursor: pointer;
+  font-size: 0.625rem;
+  padding: 0.05rem 0.3rem;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.copy-btn:hover { border-color: #444; color: #aaa; }
+.copy-btn.copied { border-color: #00c950; color: #00c950; }
 
 /* Misc cells */
 .created-at {

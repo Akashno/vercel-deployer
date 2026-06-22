@@ -2,8 +2,6 @@ interface VercelDeployment {
   uid: string
   state?: string
   readyState?: string
-  url: string
-  alias?: string[]
   target?: string
   createdAt?: number
   created?: number
@@ -67,14 +65,9 @@ export default defineEventHandler(async () => {
       meta.bitbucketCommitAuthorName ??
       null
 
-    const branchUrl =
-      d.alias?.find((a) => a.includes('-git-')) ??
-      d.url
-
     return {
       uid: d.uid,
       state: d.readyState ?? d.state ?? 'UNKNOWN',
-      url: branchUrl,
       target: d.target ?? null,
       createdAt: d.createdAt ?? d.created ?? null,
       inspectorUrl: d.inspectorUrl ?? null,
