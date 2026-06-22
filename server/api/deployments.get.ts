@@ -15,7 +15,7 @@ interface VercelResponse {
 }
 
 export default defineEventHandler(async () => {
-  const token = process.env.VERCEL_TOKEN
+  const token = process.env.PROJECT_TOKEN
   const projectId = process.env.PROJECT_ID
   const teamId = process.env.TEAM_ID
 
