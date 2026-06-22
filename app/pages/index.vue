@@ -11,20 +11,79 @@ interface Deployment {
   commitAuthor: string | null
 }
 
-const search = ref('')
+const route = useRoute()
+const router = useRouter()
 const autoRefresh = ref(false)
 
 const { data, pending, error, refresh } = await useFetch<Deployment[]>('/api/deployments')
 
+const search = ref((route.query.q as string) ?? '')
+const filterStatus = ref((route.query.status as string) ?? '')
+const filterAuthor = ref((route.query.author as string) ?? '')
+
+const searchInput = ref<HTMLInputElement | null>(null)
+
+onMounted(() => {
+  const onKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      searchInput.value?.focus()
+    }
+  }
+  window.addEventListener('keydown', onKeydown)
+  onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+})
+
+function syncUrl() {
+  const query: Record<string, string> = {}
+  if (search.value) query.q = search.value
+  if (filterStatus.value) query.status = filterStatus.value
+  if (filterAuthor.value) query.author = filterAuthor.value
+  router.replace({ query })
+}
+
+watch([filterStatus, filterAuthor], syncUrl)
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+watch(search, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(syncUrl, 300)
+})
+
+const hasFilters = computed(() =>
+  !!(search.value || filterStatus.value || filterAuthor.value),
+)
+
+function clearFilters() {
+  search.value = ''
+  filterStatus.value = ''
+  filterAuthor.value = ''
+  router.replace({ query: {} })
+}
+
+const uniqueStatuses = computed(() =>
+  [...new Set((data.value ?? []).map(d => d.state).filter(Boolean))] as string[],
+)
+
+const uniqueAuthors = computed(() =>
+  [...new Set((data.value ?? []).map(d => d.commitAuthor).filter(Boolean))] as string[],
+)
+
 const filteredDeployments = computed(() => {
   if (!data.value) return []
-  const q = search.value.toLowerCase().trim()
-  if (!q) return data.value
-  return data.value.filter(d =>
-    (d.branch ?? '').toLowerCase().includes(q) ||
-    (d.commitMessage ?? '').toLowerCase().includes(q) ||
-    (d.commitAuthor ?? '').toLowerCase().includes(q),
-  )
+  return data.value.filter((d) => {
+    if (filterStatus.value && d.state?.toUpperCase() !== filterStatus.value.toUpperCase()) return false
+    if (filterAuthor.value && d.commitAuthor !== filterAuthor.value) return false
+    const q = search.value.toLowerCase().trim()
+    if (q) {
+      return (
+        (d.branch ?? '').toLowerCase().includes(q) ||
+        (d.commitMessage ?? '').toLowerCase().includes(q) ||
+        (d.commitAuthor ?? '').toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
 })
 
 const stateClass: Record<string, string> = {
@@ -54,10 +113,8 @@ function relativeTime(ts: number): string {
 function formatCreatedAt(ts: number | null): string {
   if (!ts) return '—'
   const date = new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
     hour12: false,
   }).format(new Date(ts))
   return `${date} · ${relativeTime(ts)}`
@@ -75,6 +132,7 @@ watch(autoRefresh, (enabled) => {
 
 onUnmounted(() => {
   if (timer !== null) clearInterval(timer)
+  if (searchTimer !== null) clearTimeout(searchTimer)
 })
 
 const copied = ref<string | null>(null)
@@ -95,23 +153,37 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
         <span v-if="data" class="count">{{ filteredDeployments.length }}</span>
       </div>
       <div class="controls">
-        <input
-          v-model="search"
-          class="search"
-          type="search"
-          placeholder="Search branch, URL, commit, author…"
-          aria-label="Search deployments"
-        />
         <button class="btn" :disabled="pending" @click="refresh">
           <span :class="{ spinning: pending }">↻</span>
           Refresh
         </button>
-        <label class="auto-label">
-          <input v-model="autoRefresh" type="checkbox" class="auto-checkbox" />
+        <button class="btn auto-btn" :class="{ 'auto-btn--on': autoRefresh }" @click="autoRefresh = !autoRefresh">
+          <span class="auto-dot" :class="{ 'auto-dot--on': autoRefresh }" />
           Auto (30s)
-        </label>
+        </button>
       </div>
     </header>
+
+    <!-- Filter bar -->
+    <div v-if="data" class="filter-bar">
+      <input
+        ref="searchInput"
+        v-model="search"
+        class="search"
+        type="search"
+        placeholder="Search branch, commit, author… (⌘K)"
+        aria-label="Search deployments"
+      />
+      <select v-model="filterStatus" class="filter-select">
+        <option value="">All statuses</option>
+        <option v-for="s in uniqueStatuses" :key="s" :value="s">{{ s }}</option>
+      </select>
+      <select v-model="filterAuthor" class="filter-select">
+        <option value="">All authors</option>
+        <option v-for="a in uniqueAuthors" :key="a" :value="a">{{ a }}</option>
+      </select>
+      <button v-if="hasFilters" class="btn clear-btn" @click="clearFilters">✕ Clear</button>
+    </div>
 
     <div v-if="pending && !data" class="empty-state">
       <div class="spinner" />
@@ -124,7 +196,7 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
     </div>
 
     <div v-else-if="!filteredDeployments.length" class="empty-state">
-      <span>No deployments found{{ search ? ' for your search' : '' }}.</span>
+      <span>No deployments found{{ hasFilters ? ' for the active filters' : '' }}.</span>
     </div>
 
     <div v-else class="table-wrap">
@@ -138,10 +210,18 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="d in filteredDeployments" :key="d.uid" class="clickable-row" @click="navigateTo(`/deployments/${d.uid}`)" @keydown.enter="navigateTo(`/deployments/${d.uid}`)" tabindex="0">
+          <tr
+            v-for="d in filteredDeployments"
+            :key="d.uid"
+            class="clickable-row"
+            tabindex="0"
+            @click="navigateTo(`/deployments/${d.uid}`)"
+            @keydown.enter="navigateTo(`/deployments/${d.uid}`)"
+          >
             <td>
               <div v-if="d.branch" class="branch-row">
                 <span class="branch">{{ d.branch }}</span>
+                <span v-if="d.target === 'production'" class="prod-tag">Production</span>
                 <button
                   class="copy-btn"
                   :class="{ copied: copied === d.uid }"
@@ -154,13 +234,21 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
               </div>
             </td>
             <td>
-              <div class="status-cell">
-                <span :class="['badge', getBadgeClass(d.state)]">{{ d.state }}</span>
-                <span v-if="d.target === 'production'" class="prod-tag">Production</span>
-              </div>
+              <span :class="['badge', getBadgeClass(d.state)]">{{ d.state }}</span>
             </td>
             <td class="created-at">{{ formatCreatedAt(d.createdAt) }}</td>
-            <td class="author">{{ d.commitAuthor || '—' }}</td>
+            <td>
+              <div class="author-cell">
+                <img
+                  v-if="d.commitAuthor"
+                  :src="`https://github.com/${d.commitAuthor}.png?size=32`"
+                  :alt="d.commitAuthor"
+                  class="avatar"
+                  @error="($event.target as HTMLImageElement).style.display = 'none'"
+                />
+                <span class="author">{{ d.commitAuthor || '—' }}</span>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -182,7 +270,7 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .header-left {
@@ -220,15 +308,14 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   border: 1px solid #2a2a2a;
   border-radius: 6px;
   color: #ededed;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   outline: none;
   padding: 0.4rem 0.75rem;
   transition: border-color 0.15s;
-  width: 280px;
+  width: 300px;
 }
-
 .search:focus { border-color: #555; }
-.search::placeholder { color: #555; }
+.search::placeholder { color: #444; }
 
 .btn {
   align-items: center;
@@ -243,25 +330,55 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   padding: 0.4rem 0.75rem;
   transition: border-color 0.15s, background 0.15s;
 }
-
 .btn:hover:not(:disabled) { background: #111; border-color: #444; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
 .spinning { display: inline-block; animation: spin 0.8s linear infinite; }
-
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.auto-label {
-  align-items: center;
-  color: #666;
-  cursor: pointer;
+.auto-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #333;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.auto-dot--on { background: #00c950; }
+
+/* Filter bar */
+.filter-bar {
   display: flex;
-  font-size: 0.8125rem;
-  gap: 0.375rem;
-  user-select: none;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
 }
 
-.auto-checkbox { accent-color: #0070f3; cursor: pointer; }
+.filter-select {
+  appearance: none;
+  background: #0a0a0a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E") no-repeat right 0.6rem center;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  outline: none;
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.filter-select:focus { border-color: #555; }
+.filter-select:hover { border-color: #3a3a3a; }
+.filter-select option { background: #111; color: #ededed; }
+
+.filter-select[value]:not([value=""]) { border-color: #0070f3; color: #ededed; }
+
+.clear-btn {
+  color: #e5484d;
+  border-color: rgba(229, 72, 77, 0.3);
+  font-size: 0.8125rem;
+}
+.clear-btn:hover:not(:disabled) { background: rgba(229, 72, 77, 0.08); border-color: #e5484d; color: #e5484d; }
 
 /* Empty / loading states */
 .empty-state {
@@ -274,7 +391,6 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   justify-content: center;
   padding: 5rem 2rem;
 }
-
 .error-state { color: #e5484d; }
 .error-icon { font-size: 1.5rem; }
 
@@ -300,9 +416,7 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   width: 100%;
 }
 
-.table thead {
-  border-bottom: 1px solid #1a1a1a;
-}
+.table thead { border-bottom: 1px solid #1a1a1a; }
 
 .table th {
   color: #555;
@@ -318,17 +432,16 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
 .table td {
   border-bottom: 1px solid #111;
   padding: 0.8125rem 1rem;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .table tbody tr:last-child td { border-bottom: none; }
-
 .table tbody tr:hover td { background: #080808; }
 
 .clickable-row { cursor: pointer; outline: none; }
 .clickable-row:focus-visible td { background: #0a0a0a; }
 
-/* Status badge */
+/* Badge */
 .badge {
   border-radius: 4px;
   display: inline-block;
@@ -347,13 +460,6 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
 .state-queued   { background: rgba(0, 112, 243, 0.12); color: #4d9ff0; }
 .state-unknown  { background: rgba(100, 100, 100, 0.1); color: #555; }
 
-.status-cell {
-  align-items: center;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
 .prod-tag {
   background: rgba(0, 112, 243, 0.1);
   border: 1px solid rgba(0, 112, 243, 0.2);
@@ -362,11 +468,17 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   display: inline-block;
   font-size: 0.6875rem;
   letter-spacing: 0.04em;
-  margin-top: 0.3rem;
   padding: 0.1rem 0.375rem;
 }
 
 /* Branch / commit */
+.branch-row {
+  align-items: center;
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
 .branch {
   color: #ededed;
   font-family: 'Menlo', 'Consolas', monospace;
@@ -386,8 +498,8 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   border-radius: 3px;
   color: #666;
   flex-shrink: 0;
-  font-size: 0.75rem;
   font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 0.75rem;
   padding: 0.05rem 0.35rem;
 }
 
@@ -398,13 +510,6 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* Branch row with copy */
-.branch-row {
-  align-items: center;
-  display: flex;
-  gap: 0.375rem;
 }
 
 .copy-btn {
@@ -421,15 +526,31 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
 .copy-btn:hover { border-color: #444; color: #aaa; }
 .copy-btn.copied { border-color: #00c950; color: #00c950; }
 
-/* Misc cells */
-.created-at {
-  color: #666;
-  font-size: 0.8125rem;
-  white-space: nowrap;
+/* Author cell */
+.author-cell {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.avatar {
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 20px;
+  width: 20px;
+  object-fit: cover;
 }
 
 .author {
   color: #888;
   font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+/* Misc cells */
+.created-at {
+  color: #666;
+  font-size: 0.8125rem;
+  white-space: nowrap;
 }
 </style>
