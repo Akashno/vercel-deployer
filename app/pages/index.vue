@@ -16,6 +16,7 @@ const router = useRouter()
 const autoRefresh = ref(false)
 
 const { data, pending, error, refresh } = await useFetch<Deployment[]>('/api/deployments')
+const { data: project } = await useFetch<{ name: string }>('/api/project')
 
 const search = ref((route.query.q as string) ?? '')
 const filterStatus = ref((route.query.status as string) ?? '')
@@ -135,6 +136,11 @@ onUnmounted(() => {
   if (searchTimer !== null) clearTimeout(searchTimer)
 })
 
+async function logout() {
+  await $fetch('/api/auth/logout', { method: 'POST' })
+  navigateTo('/login')
+}
+
 const copied = ref<string | null>(null)
 
 async function copyBranch(e: MouseEvent, branch: string, uid: string) {
@@ -143,13 +149,23 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   copied.value = uid
   setTimeout(() => { copied.value = null }, 1500)
 }
+
+async function copySha(e: MouseEvent, sha: string, uid: string) {
+  e.stopPropagation()
+  await navigator.clipboard.writeText(sha)
+  copied.value = `${uid}-sha`
+  setTimeout(() => { copied.value = null }, 1500)
+}
 </script>
 
 <template>
   <div class="page">
     <header class="header">
       <div class="header-left">
-        <h1 class="title">Deployments</h1>
+        <div class="app-brand">
+          <img src="https://console.docoitest.com/favicon.ico" style="width:20;height:20px" />
+          <span class="app-name">{{ project?.name ?? '—' }}</span>
+        </div>
         <span v-if="data" class="count">{{ filteredDeployments.length }}</span>
       </div>
       <div class="controls">
@@ -161,19 +177,14 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
           <span class="auto-dot" :class="{ 'auto-dot--on': autoRefresh }" />
           Auto (30s)
         </button>
+        <button class="btn logout-btn" @click="logout">Logout</button>
       </div>
     </header>
 
     <!-- Filter bar -->
     <div v-if="data" class="filter-bar">
-      <input
-        ref="searchInput"
-        v-model="search"
-        class="search"
-        type="search"
-        placeholder="Search branch, commit, author… (⌘K)"
-        aria-label="Search deployments"
-      />
+      <input ref="searchInput" v-model="search" class="search" type="search"
+        placeholder="Search branch, commit, author… (⌘K)" aria-label="Search deployments" />
       <select v-model="filterStatus" class="filter-select">
         <option value="">All statuses</option>
         <option v-for="s in uniqueStatuses" :key="s" :value="s">{{ s }}</option>
@@ -210,26 +221,28 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="d in filteredDeployments"
-            :key="d.uid"
-            class="clickable-row"
-            tabindex="0"
-            @click="navigateTo(`/deployments/${d.uid}`)"
-            @keydown.enter="navigateTo(`/deployments/${d.uid}`)"
-          >
+          <tr v-for="d in filteredDeployments" :key="d.uid" class="clickable-row" tabindex="0"
+            @click="navigateTo(`/deployments/${d.uid}`)" @keydown.enter="navigateTo(`/deployments/${d.uid}`)">
             <td>
               <div v-if="d.branch" class="branch-row">
                 <span class="branch">{{ d.branch }}</span>
                 <span v-if="d.target === 'production'" class="prod-tag">Production</span>
-                <button
-                  class="copy-btn"
-                  :class="{ copied: copied === d.uid }"
-                  @click="copyBranch($event, d.branch, d.uid)"
-                >{{ copied === d.uid ? '✓' : 'Copy' }}</button>
+                <button class="copy-btn" :class="{ copied: copied === d.uid }"
+                  @click="copyBranch($event, d.branch, d.uid)">{{ copied === d.uid ? '✓' : 'Copy' }}</button>
               </div>
               <div v-if="d.commitSha" class="commit-line">
                 <code class="sha">{{ d.commitSha }}</code>
+                <button class="sha-copy-btn" :class="{ copied: copied === `${d.uid}-sha` }"
+                  :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy commit SHA'"
+                  @click="copySha($event, d.commitSha, d.uid)">
+                  <svg v-if="copied !== `${d.uid}-sha`" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </button>
                 <span class="commit-msg">{{ d.commitMessage }}</span>
               </div>
             </td>
@@ -239,13 +252,9 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
             <td class="created-at">{{ formatCreatedAt(d.createdAt) }}</td>
             <td>
               <div class="author-cell">
-                <img
-                  v-if="d.commitAuthor"
-                  :src="`https://github.com/${d.commitAuthor}.png?size=32`"
-                  :alt="d.commitAuthor"
-                  class="avatar"
-                  @error="($event.target as HTMLImageElement).style.display = 'none'"
-                />
+                <img v-if="d.commitAuthor" :src="`https://github.com/${d.commitAuthor}.png?size=32`"
+                  :alt="d.commitAuthor" class="avatar"
+                  @error="($event.target as HTMLImageElement).style.display = 'none'" />
                 <span class="author">{{ d.commitAuthor || '—' }}</span>
               </div>
             </td>
@@ -279,8 +288,18 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   gap: 0.625rem;
 }
 
-.title {
-  font-size: 1.375rem;
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-logo {
+  flex-shrink: 0;
+}
+
+.app-name {
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: #fff;
@@ -314,8 +333,14 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   transition: border-color 0.15s;
   width: 300px;
 }
-.search:focus { border-color: #555; }
-.search::placeholder { color: #444; }
+
+.search:focus {
+  border-color: #555;
+}
+
+.search::placeholder {
+  color: #444;
+}
 
 .btn {
   align-items: center;
@@ -330,11 +355,37 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   padding: 0.4rem 0.75rem;
   transition: border-color 0.15s, background 0.15s;
 }
-.btn:hover:not(:disabled) { background: #111; border-color: #444; }
-.btn:disabled { opacity: 0.5; cursor: default; }
 
-.spinning { display: inline-block; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.btn:hover:not(:disabled) {
+  background: #111;
+  border-color: #444;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.spinning {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.logout-btn {
+  color: #666;
+}
+
+.logout-btn:hover {
+  color: #e5484d;
+  border-color: rgba(229, 72, 77, 0.4);
+  background: rgba(229, 72, 77, 0.06);
+}
 
 .auto-dot {
   width: 6px;
@@ -344,7 +395,10 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   flex-shrink: 0;
   transition: background 0.15s;
 }
-.auto-dot--on { background: #00c950; }
+
+.auto-dot--on {
+  background: #00c950;
+}
 
 /* Filter bar */
 .filter-bar {
@@ -367,18 +421,36 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   padding: 0.4rem 2rem 0.4rem 0.75rem;
   transition: border-color 0.15s, color 0.15s;
 }
-.filter-select:focus { border-color: #555; }
-.filter-select:hover { border-color: #3a3a3a; }
-.filter-select option { background: #111; color: #ededed; }
 
-.filter-select[value]:not([value=""]) { border-color: #0070f3; color: #ededed; }
+.filter-select:focus {
+  border-color: #555;
+}
+
+.filter-select:hover {
+  border-color: #3a3a3a;
+}
+
+.filter-select option {
+  background: #111;
+  color: #ededed;
+}
+
+.filter-select[value]:not([value=""]) {
+  border-color: #0070f3;
+  color: #ededed;
+}
 
 .clear-btn {
   color: #e5484d;
   border-color: rgba(229, 72, 77, 0.3);
   font-size: 0.8125rem;
 }
-.clear-btn:hover:not(:disabled) { background: rgba(229, 72, 77, 0.08); border-color: #e5484d; color: #e5484d; }
+
+.clear-btn:hover:not(:disabled) {
+  background: rgba(229, 72, 77, 0.08);
+  border-color: #e5484d;
+  color: #e5484d;
+}
 
 /* Empty / loading states */
 .empty-state {
@@ -391,8 +463,14 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   justify-content: center;
   padding: 5rem 2rem;
 }
-.error-state { color: #e5484d; }
-.error-icon { font-size: 1.5rem; }
+
+.error-state {
+  color: #e5484d;
+}
+
+.error-icon {
+  font-size: 1.5rem;
+}
 
 .spinner {
   animation: spin 0.7s linear infinite;
@@ -416,7 +494,9 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   width: 100%;
 }
 
-.table thead { border-bottom: 1px solid #1a1a1a; }
+.table thead {
+  border-bottom: 1px solid #1a1a1a;
+}
 
 .table th {
   color: #555;
@@ -435,11 +515,22 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   vertical-align: middle;
 }
 
-.table tbody tr:last-child td { border-bottom: none; }
-.table tbody tr:hover td { background: #080808; }
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
 
-.clickable-row { cursor: pointer; outline: none; }
-.clickable-row:focus-visible td { background: #0a0a0a; }
+.table tbody tr:hover td {
+  background: #080808;
+}
+
+.clickable-row {
+  cursor: pointer;
+  outline: none;
+}
+
+.clickable-row:focus-visible td {
+  background: #0a0a0a;
+}
 
 /* Badge */
 .badge {
@@ -453,12 +544,35 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   white-space: nowrap;
 }
 
-.state-ready    { background: rgba(0, 201, 80, 0.12);  color: #00c950; }
-.state-error    { background: rgba(229, 72, 77, 0.12); color: #e5484d; }
-.state-building { background: rgba(255, 153, 10, 0.12); color: #ff990a; }
-.state-canceled { background: rgba(136, 136, 136, 0.12); color: #777; }
-.state-queued   { background: rgba(0, 112, 243, 0.12); color: #4d9ff0; }
-.state-unknown  { background: rgba(100, 100, 100, 0.1); color: #555; }
+.state-ready {
+  background: rgba(0, 201, 80, 0.12);
+  color: #00c950;
+}
+
+.state-error {
+  background: rgba(229, 72, 77, 0.12);
+  color: #e5484d;
+}
+
+.state-building {
+  background: rgba(255, 153, 10, 0.12);
+  color: #ff990a;
+}
+
+.state-canceled {
+  background: rgba(136, 136, 136, 0.12);
+  color: #777;
+}
+
+.state-queued {
+  background: rgba(0, 112, 243, 0.12);
+  color: #4d9ff0;
+}
+
+.state-unknown {
+  background: rgba(100, 100, 100, 0.1);
+  color: #555;
+}
 
 .prod-tag {
   background: rgba(0, 112, 243, 0.1);
@@ -523,8 +637,36 @@ async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   transition: border-color 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.copy-btn:hover { border-color: #444; color: #aaa; }
-.copy-btn.copied { border-color: #00c950; color: #00c950; }
+
+.copy-btn:hover {
+  border-color: #444;
+  color: #aaa;
+}
+
+.copy-btn.copied {
+  border-color: #00c950;
+  color: #00c950;
+}
+
+.sha-copy-btn {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: #444;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.sha-copy-btn:hover {
+  color: #888;
+}
+
+.sha-copy-btn.copied {
+  color: #00c950;
+}
 
 /* Author cell */
 .author-cell {
