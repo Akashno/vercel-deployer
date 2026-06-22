@@ -18,6 +18,20 @@ const autoRefresh = ref(false)
 const { data, pending, error, refresh } = await useFetch<Deployment[]>('/api/deployments')
 const { data: project } = await useFetch<{ name: string }>('/api/project')
 
+const cancelling = ref<string | null>(null)
+const CANCELLABLE = new Set(['BUILDING', 'QUEUED', 'INITIALIZING'])
+
+async function cancelDeployment(e: MouseEvent, uid: string) {
+  e.stopPropagation()
+  cancelling.value = uid
+  try {
+    await $fetch(`/api/deployments/${uid}/cancel`, { method: 'PATCH' })
+    await refresh()
+  } finally {
+    cancelling.value = null
+  }
+}
+
 const search = ref((route.query.q as string) ?? '')
 const filterStatus = ref((route.query.status as string) ?? '')
 const filterAuthor = ref((route.query.author as string) ?? '')
@@ -235,11 +249,14 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
                 <button class="sha-copy-btn" :class="{ copied: copied === `${d.uid}-sha` }"
                   :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy commit SHA'"
                   @click="copySha($event, d.commitSha, d.uid)">
-                  <svg v-if="copied !== `${d.uid}-sha`" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-if="copied !== `${d.uid}-sha`" xmlns="http://www.w3.org/2000/svg" width="11" height="11"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </button>
@@ -247,7 +264,12 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
               </div>
             </td>
             <td>
-              <span :class="['badge', getBadgeClass(d.state)]">{{ d.state }}</span>
+              <div class="status-cell">
+                <span :class="['badge', getBadgeClass(d.state)]">{{ d.state }}</span>
+                <button v-if="CANCELLABLE.has(d.state?.toUpperCase())" class="cancel-btn"
+                  :disabled="cancelling === d.uid" @click="cancelDeployment($event, d.uid)">{{ cancelling === d.uid ?
+                  '…' : 'Cancel' }}</button>
+              </div>
             </td>
             <td class="created-at">{{ formatCreatedAt(d.createdAt) }}</td>
             <td>
@@ -479,6 +501,34 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
   border-radius: 50%;
   height: 24px;
   width: 24px;
+}
+
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(229, 72, 77, 0.3);
+  border-radius: 4px;
+  color: #e5484d;
+  cursor: pointer;
+  font-size: 0.6875rem;
+  padding: 0.15rem 0.4rem;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: rgba(229, 72, 77, 0.08);
+  border-color: #e5484d;
+}
+
+.cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Table */

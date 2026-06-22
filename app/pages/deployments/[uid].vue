@@ -117,6 +117,19 @@ watch(logsPending, (pending) => {
   if (!pending && isLogsOpen.value) scrollToBottom()
 })
 
+const CANCELLABLE = new Set(['BUILDING', 'QUEUED', 'INITIALIZING'])
+const cancelling = ref(false)
+
+async function cancelDeployment() {
+  cancelling.value = true
+  try {
+    await $fetch(`/api/deployments/${uid}/cancel`, { method: 'PATCH' })
+    await refreshNuxtData()
+  } finally {
+    cancelling.value = false
+  }
+}
+
 const stateClass: Record<string, string> = {
   READY: 'state-ready',
   ERROR: 'state-error',
@@ -183,6 +196,12 @@ async function copy(value: string, key: string) {
         <div class="detail-actions">
           <a :href="`https://${data.url}`" target="_blank" rel="noopener" class="action-btn primary">Visit ↗</a>
           <a v-if="data.inspectorUrl" :href="data.inspectorUrl" target="_blank" rel="noopener" class="action-btn">Vercel Dashboard ↗</a>
+          <button
+            v-if="CANCELLABLE.has(data.state?.toUpperCase())"
+            class="action-btn cancel-action"
+            :disabled="cancelling"
+            @click="cancelDeployment"
+          >{{ cancelling ? 'Cancelling…' : 'Cancel Deployment' }}</button>
         </div>
       </div>
 
@@ -337,6 +356,9 @@ async function copy(value: string, key: string) {
 .action-btn:hover { border-color: #444; color: #fff; background: #111; }
 .action-btn.primary { background: #0070f3; border-color: #0070f3; color: #fff; }
 .action-btn.primary:hover { background: #005cc5; border-color: #005cc5; }
+.action-btn.cancel-action { border-color: rgba(229, 72, 77, 0.4); color: #e5484d; cursor: pointer; }
+.action-btn.cancel-action:hover:not(:disabled) { background: rgba(229, 72, 77, 0.08); border-color: #e5484d; }
+.action-btn.cancel-action:disabled { opacity: 0.5; cursor: default; }
 
 /* Meta strip */
 .meta-strip {
