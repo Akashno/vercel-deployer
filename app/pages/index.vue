@@ -1,5 +1,6 @@
 <script setup lang="ts">
 interface Deployment {
+  uid: string
   state: string
   url: string
   target: string | null
@@ -131,7 +132,7 @@ onUnmounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="d in filteredDeployments" :key="d.url + d.createdAt">
+          <tr v-for="d in filteredDeployments" :key="d.uid" class="clickable-row" @click="navigateTo(`/deployments/${d.uid}`)" @keydown.enter="navigateTo(`/deployments/${d.uid}`)" tabindex="0">
             <td>
               <span :class="['badge', getBadgeClass(d.state)]">{{ d.state }}</span>
             </td>
@@ -142,6 +143,7 @@ onUnmounted(() => {
                   target="_blank"
                   rel="noopener"
                   class="url-link"
+                  @click.stop
                 >{{ d.url }}</a>
                 <a
                   v-if="d.inspectorUrl"
@@ -150,6 +152,7 @@ onUnmounted(() => {
                   rel="noopener"
                   class="inspector-link"
                   title="Open in Vercel dashboard"
+                  @click.stop
                 >↗</a>
               </div>
               <span v-if="d.target === 'production'" class="prod-tag">Production</span>
@@ -326,6 +329,9 @@ onUnmounted(() => {
 .table tbody tr:last-child td { border-bottom: none; }
 
 .table tbody tr:hover td { background: #080808; }
+
+.clickable-row { cursor: pointer; outline: none; }
+.clickable-row:focus-visible td { background: #0a0a0a; }
 
 /* Status badge */
 .badge {
