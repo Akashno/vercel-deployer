@@ -52,6 +52,9 @@ onMounted(() => {
       e.preventDefault()
       searchInput.value?.focus()
     }
+    if (e.key === 'Escape' && confirmPending.value) {
+      confirmPending.value = null
+    }
   }
   window.addEventListener('keydown', onKeydown)
   onUnmounted(() => window.removeEventListener('keydown', onKeydown))
@@ -165,6 +168,7 @@ async function logout() {
 }
 
 const copied = ref<string | null>(null)
+const avatarErrors = ref<Record<string, boolean>>({})
 
 async function copyBranch(e: MouseEvent, branch: string, uid: string) {
   e.stopPropagation()
@@ -209,8 +213,21 @@ async function pollRunStatus(uid: string, branch: string) {
   }
 }
 
-async function forceDeploy(e: MouseEvent, uid: string, branch: string) {
+const confirmPending = ref<{ uid: string; branch: string } | null>(null)
+
+function forceDeploy(e: MouseEvent, uid: string, branch: string) {
   e.stopPropagation()
+  confirmPending.value = { uid, branch }
+}
+
+async function confirmForceDeploy() {
+  if (!confirmPending.value) return
+  const { uid, branch } = confirmPending.value
+  confirmPending.value = null
+  await runForceDeploy(uid, branch)
+}
+
+async function runForceDeploy(uid: string, branch: string) {
   stopFdPoll(uid)
   fdStates.value[uid] = { phase: 'dispatching' }
   fdDispatchedAt.set(uid, Date.now())
@@ -230,7 +247,6 @@ async function forceDeploy(e: MouseEvent, uid: string, branch: string) {
   const t = setInterval(() => pollRunStatus(uid, branch), 3_000)
   fdTimers.set(uid, t)
 
-  // Stop waiting after 60s if run never appears
   setTimeout(() => {
     if (fdStates.value[uid]?.phase === 'waiting') {
       stopFdPoll(uid)
@@ -379,9 +395,19 @@ function runChipClass(uid: string): string {
             <td class="created-at">{{ formatCreatedAt(d.createdAt) }}</td>
             <td>
               <div class="author-cell">
-                <img v-if="d.commitAuthor" :src="`https://github.com/${d.commitAuthor}.png?size=32`"
+                <img v-if="d.commitAuthor && !avatarErrors[d.uid]"
+                  :src="`https://github.com/${d.commitAuthor}.png?size=32`"
                   :alt="d.commitAuthor" class="avatar"
-                  @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                  @error="avatarErrors[d.uid] = true" />
+                <svg v-else-if="d.commitAuthor" class="avatar avatar-bot" viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg" aria-label="bot">
+                  <rect x="3" y="7" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                  <line x1="10" y1="3" x2="10" y2="7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                  <circle cx="10" cy="2.5" r="1" fill="currentColor"/>
+                  <circle cx="7" cy="12" r="1.4" fill="currentColor"/>
+                  <circle cx="13" cy="12" r="1.4" fill="currentColor"/>
+                  <line x1="7.5" y1="15" x2="12.5" y2="15" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
                 <span class="author">{{ d.commitAuthor || '—' }}</span>
               </div>
             </td>
@@ -407,6 +433,31 @@ function runChipClass(uid: string): string {
       </table>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div v-if="confirmPending" class="dialog-overlay" @click.self="confirmPending = null">
+      <div class="dialog" role="dialog" aria-modal="true">
+        <div class="dialog-icon-wrap">
+          <svg class="dialog-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <p class="dialog-title">Force Deploy</p>
+        <p class="dialog-body">
+          This will push an empty commit to
+          <code class="dialog-branch">{{ confirmPending.branch }}</code>
+          on GitHub, triggering a new Vercel deployment.
+        </p>
+        <div class="dialog-actions">
+          <button class="btn" @click="confirmPending = null">Cancel</button>
+          <button class="dialog-confirm" @click="confirmForceDeploy">Deploy</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -855,6 +906,10 @@ function runChipClass(uid: string): string {
   object-fit: cover;
 }
 
+.avatar-bot {
+  color: #444;
+}
+
 .author {
   color: #888;
   font-size: 0.8125rem;
@@ -879,25 +934,115 @@ function runChipClass(uid: string): string {
 }
 
 .force-btn {
+  align-items: center;
   background: transparent;
-  border: 1px solid #2a2a2a;
-  border-radius: 4px;
-  color: #666;
+  border: 1px solid #303030;
+  border-radius: 5px;
+  color: #777;
   cursor: pointer;
-  font-size: 0.6875rem;
-  padding: 0.15rem 0.4rem;
-  transition: border-color 0.15s, color 0.15s;
+  display: inline-flex;
+  font-size: 0.75rem;
+  gap: 0.3rem;
+  letter-spacing: 0.01em;
+  padding: 0.25rem 0.6rem;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
   white-space: nowrap;
 }
 
 .force-btn:hover:not(:disabled) {
-  border-color: #444;
-  color: #999;
+  background: #0d0d0d;
+  border-color: #505050;
+  color: #bbb;
 }
 
 .force-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: default;
+}
+
+/* Confirm dialog */
+.dialog-overlay {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.65);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.dialog {
+  background: #0d0d0d;
+  border: 1px solid #222;
+  border-radius: 10px;
+  max-width: 380px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  width: calc(100% - 2rem);
+}
+
+.dialog-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.dialog-icon {
+  color: #555;
+  height: 28px;
+  width: 28px;
+}
+
+.dialog-title {
+  color: #ededed;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 0.625rem;
+  text-align: center;
+}
+
+.dialog-body {
+  color: #777;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+
+.dialog-branch {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  color: #ccc;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 0.75rem;
+  padding: 0.05rem 0.35rem;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.dialog-confirm {
+  background: #111;
+  border: 1px solid #383838;
+  border-radius: 6px;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.9rem;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.dialog-confirm:hover {
+  background: #161616;
+  border-color: #555;
+  color: #ededed;
 }
 
 .run-chip {
