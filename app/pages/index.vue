@@ -11,6 +11,14 @@ interface Deployment {
   commitAuthor: string | null
 }
 
+interface ForceDeployState {
+  phase: 'dispatching' | 'waiting' | 'found' | 'error'
+  runStatus?: string
+  runConclusion?: string | null
+  runUrl?: string
+  error?: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const autoRefresh = ref(false)
@@ -148,6 +156,7 @@ watch(autoRefresh, (enabled) => {
 onUnmounted(() => {
   if (timer !== null) clearInterval(timer)
   if (searchTimer !== null) clearTimeout(searchTimer)
+  fdTimers.forEach((_, uid) => stopFdPoll(uid))
 })
 
 async function logout() {
@@ -169,6 +178,101 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
   await navigator.clipboard.writeText(sha)
   copied.value = `${uid}-sha`
   setTimeout(() => { copied.value = null }, 1500)
+}
+
+// ── Force deploy ─────────────────────────────────────────────────────────────
+const fdStates = ref<Record<string, ForceDeployState>>({})
+const fdTimers = new Map<string, ReturnType<typeof setInterval>>()
+const fdDispatchedAt = new Map<string, number>()
+
+function stopFdPoll(uid: string) {
+  const t = fdTimers.get(uid)
+  if (t !== undefined) { clearInterval(t); fdTimers.delete(uid) }
+}
+
+async function pollRunStatus(uid: string, branch: string) {
+  const since = fdDispatchedAt.get(uid) ?? Date.now()
+  try {
+    type Run = { id: number; status: string; conclusion: string | null; html_url: string }
+    const run = await $fetch<Run | null>('/api/force-deploy/status', { query: { branch, since } })
+    if (!run) return
+
+    fdStates.value[uid] = {
+      phase: 'found',
+      runStatus: run.status,
+      runConclusion: run.conclusion,
+      runUrl: run.html_url,
+    }
+    if (run.status === 'completed') stopFdPoll(uid)
+  } catch {
+    // transient network error — keep polling
+  }
+}
+
+async function forceDeploy(e: MouseEvent, uid: string, branch: string) {
+  e.stopPropagation()
+  stopFdPoll(uid)
+  fdStates.value[uid] = { phase: 'dispatching' }
+  fdDispatchedAt.set(uid, Date.now())
+
+  try {
+    await $fetch('/api/force-deploy', { method: 'POST', body: { branch } })
+  } catch (err: any) {
+    fdStates.value[uid] = {
+      phase: 'error',
+      error: err?.data?.message ?? err?.message ?? 'Failed to trigger deploy',
+    }
+    return
+  }
+
+  fdStates.value[uid] = { phase: 'waiting' }
+  await pollRunStatus(uid, branch)
+  const t = setInterval(() => pollRunStatus(uid, branch), 3_000)
+  fdTimers.set(uid, t)
+
+  // Stop waiting after 60s if run never appears
+  setTimeout(() => {
+    if (fdStates.value[uid]?.phase === 'waiting') {
+      stopFdPoll(uid)
+      fdStates.value[uid] = { phase: 'error', error: 'No run appeared within 60s — check GitHub Actions' }
+    }
+  }, 60_000)
+}
+
+function isFdBusy(uid: string): boolean {
+  const s = fdStates.value[uid]
+  if (!s) return false
+  return s.phase === 'dispatching' || s.phase === 'waiting' ||
+    (s.phase === 'found' && s.runStatus !== 'completed')
+}
+
+function fdBtnLabel(uid: string): string {
+  const s = fdStates.value[uid]
+  if (!s) return 'Force deploy'
+  if (s.phase === 'dispatching') return '…'
+  if (s.phase === 'waiting') return 'Deploying…'
+  return 'Force deploy'
+}
+
+function runChipLabel(uid: string): string {
+  const s = fdStates.value[uid]
+  if (!s || s.phase !== 'found') return ''
+  if (s.runStatus === 'queued') return 'Queued'
+  if (s.runStatus === 'in_progress') return 'Running…'
+  if (s.runStatus === 'completed') {
+    if (s.runConclusion === 'success') return 'Success'
+    return s.runConclusion ?? 'Completed'
+  }
+  return s.runStatus ?? ''
+}
+
+function runChipClass(uid: string): string {
+  const s = fdStates.value[uid]
+  if (!s || s.phase !== 'found') return ''
+  if (s.runStatus === 'queued' || s.runStatus === 'in_progress') return 'run-chip--running'
+  if (s.runStatus === 'completed' && s.runConclusion === 'success') return 'run-chip--success'
+  if (s.runStatus === 'completed') return 'run-chip--failed'
+  return ''
 }
 </script>
 
@@ -232,6 +336,7 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
             <th>Status</th>
             <th>Created At</th>
             <th>Commit Author</th>
+            <th>Force Deploy</th>
           </tr>
         </thead>
         <tbody>
@@ -279,6 +384,23 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
                   @error="($event.target as HTMLImageElement).style.display = 'none'" />
                 <span class="author">{{ d.commitAuthor || '—' }}</span>
               </div>
+            </td>
+            <td class="fd-cell">
+              <template v-if="d.branch">
+                <button class="force-btn" :disabled="isFdBusy(d.uid)"
+                  @click="forceDeploy($event, d.uid, d.branch!)">
+                  {{ fdBtnLabel(d.uid) }}
+                </button>
+                <a v-if="fdStates[d.uid]?.phase === 'found' && fdStates[d.uid]?.runUrl"
+                  :href="fdStates[d.uid]!.runUrl" target="_blank" rel="noopener noreferrer"
+                  :class="['run-chip', runChipClass(d.uid)]" @click.stop>
+                  {{ runChipLabel(d.uid) }}
+                </a>
+                <span v-else-if="fdStates[d.uid]?.phase === 'waiting'" class="run-chip run-chip--waiting">Waiting…</span>
+                <span v-else-if="fdStates[d.uid]?.phase === 'error'" class="run-chip run-chip--failed"
+                  :title="fdStates[d.uid]!.error">Error</span>
+              </template>
+              <span v-else class="fd-na">—</span>
             </td>
           </tr>
         </tbody>
@@ -744,5 +866,68 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
   color: #666;
   font-size: 0.8125rem;
   white-space: nowrap;
+}
+
+/* Force deploy */
+.fd-cell {
+  white-space: nowrap;
+}
+
+.fd-na {
+  color: #333;
+  font-size: 0.8125rem;
+}
+
+.force-btn {
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.6875rem;
+  padding: 0.15rem 0.4rem;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.force-btn:hover:not(:disabled) {
+  border-color: #444;
+  color: #999;
+}
+
+.force-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.run-chip {
+  border-radius: 4px;
+  display: inline-block;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.375rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.run-chip--waiting {
+  background: rgba(100, 100, 100, 0.1);
+  color: #555;
+}
+
+.run-chip--running {
+  background: rgba(255, 153, 10, 0.12);
+  color: #ff990a;
+}
+
+.run-chip--success {
+  background: rgba(0, 201, 80, 0.12);
+  color: #00c950;
+}
+
+.run-chip--failed {
+  background: rgba(229, 72, 77, 0.12);
+  color: #e5484d;
 }
 </style>
