@@ -9,14 +9,9 @@ interface Deployment {
   commitSha: string | null
   commitMessage: string | null
   commitAuthor: string | null
-}
-
-interface ForceDeployState {
-  phase: 'dispatching' | 'waiting' | 'found' | 'error'
-  runStatus?: string
-  runConclusion?: string | null
-  runUrl?: string
-  error?: string
+  _pending?: boolean
+  _originUid?: string
+  _githubRunUrl?: string | null
 }
 
 const route = useRoute()
@@ -28,6 +23,7 @@ const { data: project } = await useFetch<{ name: string }>('/api/project')
 
 const cancelling = ref<string | null>(null)
 const CANCELLABLE = new Set(['BUILDING', 'QUEUED', 'INITIALIZING'])
+const DEPLOYABLE = new Set(['CANCELED', 'BLOCKED'])
 
 async function cancelDeployment(e: MouseEvent, uid: string) {
   e.stopPropagation()
@@ -96,8 +92,7 @@ const uniqueAuthors = computed(() =>
 )
 
 const filteredDeployments = computed(() => {
-  if (!data.value) return []
-  return data.value.filter((d) => {
+  const real = (data.value ?? []).filter((d) => {
     if (filterStatus.value && d.state?.toUpperCase() !== filterStatus.value.toUpperCase()) return false
     if (filterAuthor.value && d.commitAuthor !== filterAuthor.value) return false
     const q = search.value.toLowerCase().trim()
@@ -110,6 +105,7 @@ const filteredDeployments = computed(() => {
     }
     return true
   })
+  return [...pendingDeployments.value, ...real]
 })
 
 const stateClass: Record<string, string> = {
@@ -185,13 +181,23 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
 }
 
 // ── Force deploy ─────────────────────────────────────────────────────────────
-const fdStates = ref<Record<string, ForceDeployState>>({})
+const pendingDeployments = ref<Deployment[]>([])
 const fdTimers = new Map<string, ReturnType<typeof setInterval>>()
 const fdDispatchedAt = new Map<string, number>()
+const fdErrors = ref<Record<string, string>>({})
 
 function stopFdPoll(uid: string) {
   const t = fdTimers.get(uid)
   if (t !== undefined) { clearInterval(t); fdTimers.delete(uid) }
+}
+
+function updatePending(originUid: string, patch: Partial<Deployment>) {
+  const idx = pendingDeployments.value.findIndex(d => d._originUid === originUid)
+  if (idx !== -1) pendingDeployments.value[idx] = { ...pendingDeployments.value[idx], ...patch }
+}
+
+function removePending(originUid: string) {
+  pendingDeployments.value = pendingDeployments.value.filter(d => d._originUid !== originUid)
 }
 
 async function pollRunStatus(uid: string, branch: string) {
@@ -201,13 +207,21 @@ async function pollRunStatus(uid: string, branch: string) {
     const run = await $fetch<Run | null>('/api/force-deploy/status', { query: { branch, since } })
     if (!run) return
 
-    fdStates.value[uid] = {
-      phase: 'found',
-      runStatus: run.status,
-      runConclusion: run.conclusion,
-      runUrl: run.html_url,
+    if (run.status === 'completed') {
+      stopFdPoll(uid)
+      if (run.conclusion !== 'success') {
+        updatePending(uid, { state: 'ERROR', _githubRunUrl: run.html_url })
+      } else {
+        removePending(uid)
+        await refresh()
+      }
+      return
     }
-    if (run.status === 'completed') stopFdPoll(uid)
+
+    updatePending(uid, {
+      state: run.status === 'in_progress' ? 'BUILDING' : 'QUEUED',
+      _githubRunUrl: run.html_url,
+    })
   } catch {
     // transient network error — keep polling
   }
@@ -229,66 +243,53 @@ async function confirmForceDeploy() {
 
 async function runForceDeploy(uid: string, branch: string) {
   stopFdPoll(uid)
-  fdStates.value[uid] = { phase: 'dispatching' }
+  delete fdErrors.value[uid]
+
+  const original = data.value?.find(d => d.uid === uid)
+  pendingDeployments.value = [
+    {
+      uid: `fd-pending-${uid}`,
+      state: 'QUEUED',
+      target: original?.target ?? null,
+      createdAt: Date.now(),
+      inspectorUrl: null,
+      branch,
+      commitSha: null,
+      commitMessage: 'Force deploy',
+      commitAuthor: null,
+      _pending: true,
+      _originUid: uid,
+      _githubRunUrl: null,
+    },
+    ...pendingDeployments.value.filter(d => d._originUid !== uid),
+  ]
+
   fdDispatchedAt.set(uid, Date.now())
 
   try {
     await $fetch('/api/force-deploy', { method: 'POST', body: { branch } })
   } catch (err: any) {
-    fdStates.value[uid] = {
-      phase: 'error',
-      error: err?.data?.message ?? err?.message ?? 'Failed to trigger deploy',
-    }
+    removePending(uid)
+    fdErrors.value[uid] = err?.data?.message ?? err?.message ?? 'Failed to trigger deploy'
     return
   }
 
-  fdStates.value[uid] = { phase: 'waiting' }
   await pollRunStatus(uid, branch)
   const t = setInterval(() => pollRunStatus(uid, branch), 3_000)
   fdTimers.set(uid, t)
 
   setTimeout(() => {
-    if (fdStates.value[uid]?.phase === 'waiting') {
+    const phantom = pendingDeployments.value.find(d => d._originUid === uid)
+    if (phantom && !phantom._githubRunUrl) {
       stopFdPoll(uid)
-      fdStates.value[uid] = { phase: 'error', error: 'No run appeared within 60s — check GitHub Actions' }
+      updatePending(uid, { state: 'ERROR', commitMessage: 'No run appeared — check GitHub Actions' })
     }
   }, 60_000)
 }
 
 function isFdBusy(uid: string): boolean {
-  const s = fdStates.value[uid]
-  if (!s) return false
-  return s.phase === 'dispatching' || s.phase === 'waiting' ||
-    (s.phase === 'found' && s.runStatus !== 'completed')
-}
-
-function fdBtnLabel(uid: string): string {
-  const s = fdStates.value[uid]
-  if (!s) return 'Force deploy'
-  if (s.phase === 'dispatching') return '…'
-  if (s.phase === 'waiting') return 'Deploying…'
-  return 'Force deploy'
-}
-
-function runChipLabel(uid: string): string {
-  const s = fdStates.value[uid]
-  if (!s || s.phase !== 'found') return ''
-  if (s.runStatus === 'queued') return 'Queued'
-  if (s.runStatus === 'in_progress') return 'Running…'
-  if (s.runStatus === 'completed') {
-    if (s.runConclusion === 'success') return 'Success'
-    return s.runConclusion ?? 'Completed'
-  }
-  return s.runStatus ?? ''
-}
-
-function runChipClass(uid: string): string {
-  const s = fdStates.value[uid]
-  if (!s || s.phase !== 'found') return ''
-  if (s.runStatus === 'queued' || s.runStatus === 'in_progress') return 'run-chip--running'
-  if (s.runStatus === 'completed' && s.runConclusion === 'success') return 'run-chip--success'
-  if (s.runStatus === 'completed') return 'run-chip--failed'
-  return ''
+  const phantom = pendingDeployments.value.find(d => d._originUid === uid)
+  return !!phantom && phantom.state !== 'ERROR'
 }
 </script>
 
@@ -352,22 +353,25 @@ function runChipClass(uid: string): string {
             <th>Status</th>
             <th>Created At</th>
             <th>Commit Author</th>
-            <th>Force Deploy</th>
+            <th>Deploy</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="d in filteredDeployments" :key="d.uid" class="clickable-row" tabindex="0"
-            @click="navigateTo(`/deployments/${d.uid}`)" @keydown.enter="navigateTo(`/deployments/${d.uid}`)">
+          <tr v-for="d in filteredDeployments" :key="d.uid"
+            :class="['clickable-row', { 'pending-row': d._pending }]"
+            :tabindex="d._pending ? -1 : 0"
+            @click="!d._pending && navigateTo(`/deployments/${d.uid}`)"
+            @keydown.enter="!d._pending && navigateTo(`/deployments/${d.uid}`)">
             <td>
               <div v-if="d.branch" class="branch-row">
                 <span class="branch">{{ d.branch }}</span>
                 <span v-if="d.target === 'production'" class="prod-tag">Production</span>
-                <button class="copy-btn" :class="{ copied: copied === d.uid }"
+                <button v-if="!d._pending" class="copy-btn" :class="{ copied: copied === d.uid }"
                   @click="copyBranch($event, d.branch, d.uid)">{{ copied === d.uid ? '✓' : 'Copy' }}</button>
               </div>
-              <div v-if="d.commitSha" class="commit-line">
-                <code class="sha">{{ d.commitSha }}</code>
-                <button class="sha-copy-btn" :class="{ copied: copied === `${d.uid}-sha` }"
+              <div v-if="d.commitSha || d._pending" class="commit-line">
+                <code v-if="d.commitSha" class="sha">{{ d.commitSha }}</code>
+                <button v-if="d.commitSha" class="sha-copy-btn" :class="{ copied: copied === `${d.uid}-sha` }"
                   :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy commit SHA'"
                   @click="copySha($event, d.commitSha, d.uid)">
                   <svg v-if="copied !== `${d.uid}-sha`" xmlns="http://www.w3.org/2000/svg" width="11" height="11"
@@ -381,13 +385,15 @@ function runChipClass(uid: string): string {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </button>
-                <span class="commit-msg">{{ d.commitMessage }}</span>
+                <span class="commit-msg" :class="{ 'commit-msg--pending': d._pending }">{{ d.commitMessage }}</span>
               </div>
             </td>
             <td>
               <div class="status-cell">
-                <span :class="['badge', getBadgeClass(d.state)]">{{ d.state }}</span>
-                <button v-if="CANCELLABLE.has(d.state?.toUpperCase())" class="cancel-btn"
+                <span :class="['badge', getBadgeClass(d.state), { 'badge--pulse': d._pending && d.state !== 'ERROR' }]">
+                  {{ d.state }}
+                </span>
+                <button v-if="!d._pending && CANCELLABLE.has(d.state?.toUpperCase())" class="cancel-btn"
                   :disabled="cancelling === d.uid" @click="cancelDeployment($event, d.uid)">{{ cancelling === d.uid ?
                   '…' : 'Cancel' }}</button>
               </div>
@@ -412,19 +418,31 @@ function runChipClass(uid: string): string {
               </div>
             </td>
             <td class="fd-cell">
-              <template v-if="d.branch">
+              <!-- Pending phantom row: spinner until run appears, then link -->
+              <template v-if="d._pending">
+                <svg v-if="!d._githubRunUrl && d.state !== 'ERROR'" class="pending-spin" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.8"
+                    stroke-dasharray="28" stroke-dashoffset="10" stroke-linecap="round"/>
+                </svg>
+                <a v-else-if="d._githubRunUrl" :href="d._githubRunUrl" target="_blank" rel="noopener noreferrer"
+                  :class="['run-chip', d.state === 'ERROR' ? 'run-chip--failed' : 'run-chip--running']"
+                  @click.stop>
+                  {{ d.state === 'ERROR' ? 'View failure ↗' : 'View run ↗' }}
+                </a>
+              </template>
+              <!-- Real row: show Deploy button (no spinner — loading is on the phantom row) -->
+              <template v-else-if="d.branch && DEPLOYABLE.has(d.state?.toUpperCase())">
                 <button class="force-btn" :disabled="isFdBusy(d.uid)"
                   @click="forceDeploy($event, d.uid, d.branch!)">
-                  {{ fdBtnLabel(d.uid) }}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L12 15"/>
+                    <path d="M7 7L12 2L17 7"/>
+                    <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+                  </svg>
+                  Deploy
                 </button>
-                <a v-if="fdStates[d.uid]?.phase === 'found' && fdStates[d.uid]?.runUrl"
-                  :href="fdStates[d.uid]!.runUrl" target="_blank" rel="noopener noreferrer"
-                  :class="['run-chip', runChipClass(d.uid)]" @click.stop>
-                  {{ runChipLabel(d.uid) }}
-                </a>
-                <span v-else-if="fdStates[d.uid]?.phase === 'waiting'" class="run-chip run-chip--waiting">Waiting…</span>
-                <span v-else-if="fdStates[d.uid]?.phase === 'error'" class="run-chip run-chip--failed"
-                  :title="fdStates[d.uid]!.error">Error</span>
+                <span v-if="fdErrors[d.uid]" class="run-chip run-chip--failed" :title="fdErrors[d.uid]">Error</span>
               </template>
               <span v-else class="fd-na">—</span>
             </td>
@@ -445,7 +463,7 @@ function runChipClass(uid: string): string {
             <path d="M2 12l10 5 10-5"/>
           </svg>
         </div>
-        <p class="dialog-title">Force Deploy</p>
+        <p class="dialog-title">Deploy</p>
         <p class="dialog-body">
           This will push an empty commit to
           <code class="dialog-branch">{{ confirmPending.branch }}</code>
@@ -755,6 +773,32 @@ function runChipClass(uid: string): string {
   background: #0a0a0a;
 }
 
+.pending-row {
+  cursor: default;
+}
+
+.pending-row td {
+  background: rgba(255, 153, 10, 0.02);
+}
+
+.pending-row:hover td {
+  background: rgba(255, 153, 10, 0.03);
+}
+
+.badge--pulse {
+  animation: badge-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.commit-msg--pending {
+  color: #555;
+  font-style: italic;
+}
+
 /* Badge */
 .badge {
   border-radius: 4px;
@@ -935,29 +979,44 @@ function runChipClass(uid: string): string {
 
 .force-btn {
   align-items: center;
-  background: transparent;
-  border: 1px solid #303030;
+  background: #111;
+  border: 1px solid #383838;
   border-radius: 5px;
-  color: #777;
+  color: #aaa;
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.75rem;
-  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  gap: 0.35rem;
   letter-spacing: 0.01em;
-  padding: 0.25rem 0.6rem;
+  padding: 0.3rem 0.75rem;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
   white-space: nowrap;
 }
 
 .force-btn:hover:not(:disabled) {
-  background: #0d0d0d;
-  border-color: #505050;
-  color: #bbb;
+  background: #1a1a1a;
+  border-color: #555;
+  color: #ededed;
 }
 
 .force-btn:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+.pending-spin {
+  animation: spin 0.75s linear infinite;
+  color: #ff990a;
+  flex-shrink: 0;
+  height: 13px;
+  width: 13px;
+}
+
+.btn-icon {
+  flex-shrink: 0;
+  height: 14px;
+  width: 14px;
 }
 
 /* Confirm dialog */
