@@ -41,6 +41,7 @@ const filterStatus = ref((route.query.status as string) ?? '')
 const filterAuthor = ref((route.query.author as string) ?? '')
 
 const searchInput = ref<HTMLInputElement | null>(null)
+const branchInput = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
   const onKeydown = (e: KeyboardEvent) => {
@@ -48,8 +49,9 @@ onMounted(() => {
       e.preventDefault()
       searchInput.value?.focus()
     }
-    if (e.key === 'Escape' && confirmPending.value) {
-      confirmPending.value = null
+    if (e.key === 'Escape') {
+      if (confirmPending.value) confirmPending.value = null
+      if (deployBranchDialog.value.open) deployBranchDialog.value.open = false
     }
   }
   window.addEventListener('keydown', onKeydown)
@@ -178,6 +180,33 @@ async function copySha(e: MouseEvent, sha: string, uid: string) {
   await navigator.clipboard.writeText(sha)
   copied.value = `${uid}-sha`
   setTimeout(() => { copied.value = null }, 1500)
+}
+
+// ── Deploy a branch dialog ────────────────────────────────────────────────────
+const deployBranchDialog = ref<{ open: boolean; selectedBranch: string }>({ open: false, selectedBranch: '' })
+
+async function openDeployBranchDialog() {
+  let prefill = ''
+  try {
+    const text = await navigator.clipboard.readText()
+    if (text && !text.includes('\n') && text.length < 200) prefill = text.trim()
+  } catch {}
+  deployBranchDialog.value = { open: true, selectedBranch: prefill }
+  if (prefill) {
+    await nextTick()
+    branchInput.value?.select()
+  } else {
+    await nextTick()
+    branchInput.value?.focus()
+  }
+}
+
+async function submitDeployBranch() {
+  const branch = deployBranchDialog.value.selectedBranch
+  if (!branch) return
+  deployBranchDialog.value.open = false
+  const syntheticUid = `branch-deploy-${branch}-${Date.now()}`
+  await runForceDeploy(syntheticUid, branch)
 }
 
 // ── Force deploy ─────────────────────────────────────────────────────────────
@@ -311,6 +340,15 @@ function isFdBusy(uid: string): boolean {
         <button class="btn auto-btn" :class="{ 'auto-btn--on': autoRefresh }" @click="autoRefresh = !autoRefresh">
           <span class="auto-dot" :class="{ 'auto-dot--on': autoRefresh }" />
           Auto (30s)
+        </button>
+        <button class="btn btn-primary" @click="openDeployBranchDialog">
+          <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L12 15"/>
+            <path d="M7 7L12 2L17 7"/>
+            <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+          </svg>
+          Deploy a Branch
         </button>
         <button class="btn logout-btn" @click="logout">Logout</button>
       </div>
@@ -451,6 +489,41 @@ function isFdBusy(uid: string): boolean {
       </table>
     </div>
   </div>
+
+  <Teleport to="body">
+    <!-- Deploy a Branch dialog -->
+    <div v-if="deployBranchDialog.open" class="dialog-overlay" @click.self="deployBranchDialog.open = false">
+      <div class="dialog" role="dialog" aria-modal="true">
+        <div class="dialog-icon-wrap">
+          <svg class="dialog-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L12 15"/>
+            <path d="M7 7L12 2L17 7"/>
+            <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+          </svg>
+        </div>
+        <p class="dialog-title">Deploy a Branch</p>
+        <p class="dialog-body">Select a branch to trigger a new Vercel deployment via GitHub Actions.</p>
+        <input
+          ref="branchInput"
+          v-model="deployBranchDialog.selectedBranch"
+          class="branch-input"
+          type="text"
+          placeholder="Branch name…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="dialog-actions">
+          <button class="btn" @click="deployBranchDialog.open = false">Cancel</button>
+          <button class="dialog-confirm dialog-confirm--primary"
+            :disabled="!deployBranchDialog.selectedBranch || deployBranchDialog.loadingBranches"
+            @click="submitDeployBranch">
+            Deploy
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 
   <Teleport to="body">
     <div v-if="confirmPending" class="dialog-overlay" @click.self="confirmPending = null">
@@ -1102,6 +1175,64 @@ function isFdBusy(uid: string): boolean {
   background: #161616;
   border-color: #555;
   color: #ededed;
+}
+
+/* Primary button */
+.btn-primary {
+  background: #0070f3;
+  border-color: #0070f3;
+  color: #fff;
+  font-weight: 500;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0060d3;
+  border-color: #0060d3;
+  color: #fff;
+}
+
+
+/* Branch text input in dialog */
+.branch-input {
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #ededed;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 0.8125rem;
+  margin-bottom: 1.5rem;
+  outline: none;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.branch-input:focus {
+  border-color: #555;
+}
+
+.branch-input::placeholder {
+  color: #444;
+}
+
+
+/* Primary confirm button */
+.dialog-confirm--primary {
+  background: #0070f3;
+  border-color: #0070f3;
+  color: #fff;
+}
+
+.dialog-confirm--primary:hover:not(:disabled) {
+  background: #0060d3;
+  border-color: #0060d3;
+  color: #fff;
+}
+
+.dialog-confirm--primary:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .run-chip {
