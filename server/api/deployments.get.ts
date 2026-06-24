@@ -65,6 +65,13 @@ export default defineEventHandler(async () => {
       meta.bitbucketCommitAuthorName ??
       null
 
+    const prId = meta.githubPrId ?? null
+    const ghOrg = meta.githubOrg ?? null
+    const ghRepo = meta.githubRepo ?? null
+    const prUrl = prId && ghOrg && ghRepo
+      ? `https://github.com/${ghOrg}/${ghRepo}/pull/${prId}`
+      : null
+
     return {
       uid: d.uid,
       state: d.readyState ?? d.state ?? 'UNKNOWN',
@@ -75,6 +82,8 @@ export default defineEventHandler(async () => {
       commitSha: fullSha ? fullSha.slice(0, 7) : null,
       commitMessage,
       commitAuthor,
+      prUrl,
+      prId,
     }
   })
 })

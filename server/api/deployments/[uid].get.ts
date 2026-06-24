@@ -64,10 +64,11 @@ export default defineEventHandler(async (event) => {
     meta.bitbucketCommitAuthorName ??
     null
 
-  const repoUrl =
-    meta.githubOrg && meta.githubRepo
-      ? `https://github.com/${meta.githubOrg}/${meta.githubRepo}`
-      : null
+  const ghOrg = meta.githubOrg ?? null
+  const ghRepo = meta.githubRepo ?? null
+  const prId = meta.githubPrId ?? null
+
+  const repoUrl = ghOrg && ghRepo ? `https://github.com/${ghOrg}/${ghRepo}` : null
 
   const branchUrl =
     d.alias?.find((a) => a.includes('-git-')) ??
@@ -92,6 +93,9 @@ export default defineEventHandler(async (event) => {
     commitMessage,
     commitAuthor,
     repoUrl,
+    prId,
+    ghOrg,
+    ghRepo,
     regions: d.regions ?? [],
     creator: d.creator?.username ?? d.creator?.email ?? null,
   }

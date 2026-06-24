@@ -9,6 +9,8 @@ interface Deployment {
   commitSha: string | null
   commitMessage: string | null
   commitAuthor: string | null
+  prUrl?: string | null
+  prId?: string | null
   _pending?: boolean
   _originUid?: string
   _githubRunUrl?: string | null
@@ -17,6 +19,21 @@ interface Deployment {
 const route = useRoute()
 const router = useRouter()
 const autoRefresh = ref(false)
+
+const { public: { jiraOrg } } = useRuntimeConfig()
+
+const JIRA_TICKET_RE = /([A-Z]+-\d+)/
+
+function getJiraTicket(branch: string | null): string | null {
+  if (!branch || !jiraOrg) return null
+  const m = branch.match(JIRA_TICKET_RE)
+  return m ? m[1] : null
+}
+
+function getJiraUrl(branch: string | null): string | null {
+  const ticket = getJiraTicket(branch)
+  return ticket ? `https://${jiraOrg}.atlassian.net/browse/${ticket}` : null
+}
 
 const { data, pending, error, refresh } = await useFetch<Deployment[]>('/api/deployments')
 const { data: project } = await useFetch<{ name: string }>('/api/project')
@@ -391,7 +408,7 @@ function isFdBusy(uid: string): boolean {
             <th>Status</th>
             <th>Created At</th>
             <th>Commit Author</th>
-            <th>Deploy</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -404,10 +421,8 @@ function isFdBusy(uid: string): boolean {
               <div v-if="d.branch" class="branch-row">
                 <span class="branch">{{ d.branch }}</span>
                 <span v-if="d.target === 'production'" class="prod-tag">Production</span>
-                <button v-if="!d._pending" class="copy-btn" :class="{ copied: copied === d.uid }"
-                  @click="copyBranch($event, d.branch, d.uid)">{{ copied === d.uid ? '✓' : 'Copy' }}</button>
               </div>
-              <div v-if="d.commitSha || d._pending" class="commit-line">
+              <div v-if="d.commitSha" class="commit-line">
                 <code v-if="d.commitSha" class="sha">{{ d.commitSha }}</code>
                 <button v-if="d.commitSha" class="sha-copy-btn" :class="{ copied: copied === `${d.uid}-sha` }"
                   :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy commit SHA'"
@@ -456,33 +471,71 @@ function isFdBusy(uid: string): boolean {
               </div>
             </td>
             <td class="fd-cell">
-              <!-- Pending phantom row: spinner until run appears, then link -->
-              <template v-if="d._pending">
-                <svg v-if="!d._githubRunUrl && d.state !== 'ERROR'" class="pending-spin" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.8"
-                    stroke-dasharray="28" stroke-dashoffset="10" stroke-linecap="round"/>
-                </svg>
-                <a v-else-if="d._githubRunUrl" :href="d._githubRunUrl" target="_blank" rel="noopener noreferrer"
-                  :class="['run-chip', d.state === 'ERROR' ? 'run-chip--failed' : 'run-chip--running']"
-                  @click.stop>
-                  {{ d.state === 'ERROR' ? 'View failure ↗' : 'View run ↗' }}
-                </a>
-              </template>
-              <!-- Real row: show Deploy button (no spinner — loading is on the phantom row) -->
-              <template v-else-if="d.branch && DEPLOYABLE.has(d.state?.toUpperCase())">
-                <button class="force-btn" :disabled="isFdBusy(d.uid)"
-                  @click="forceDeploy($event, d.uid, d.branch!)">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2L12 15"/>
-                    <path d="M7 7L12 2L17 7"/>
-                    <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+              <div class="action-stack">
+                <!-- Pending phantom row -->
+                <template v-if="d._pending">
+                  <svg v-if="!d._githubRunUrl && d.state !== 'ERROR'" class="pending-spin" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.8"
+                      stroke-dasharray="28" stroke-dashoffset="10" stroke-linecap="round"/>
                   </svg>
-                  Deploy
-                </button>
-                <span v-if="fdErrors[d.uid]" class="run-chip run-chip--failed" :title="fdErrors[d.uid]">Error</span>
-              </template>
-              <span v-else class="fd-na">—</span>
+                  <a v-else-if="d._githubRunUrl" :href="d._githubRunUrl" target="_blank" rel="noopener noreferrer"
+                    :class="['run-chip', d.state === 'ERROR' ? 'run-chip--failed' : 'run-chip--running']"
+                    @click.stop>
+                    {{ d.state === 'ERROR' ? 'View failure ↗' : 'View run ↗' }}
+                  </a>
+                </template>
+                <template v-else>
+                  <!-- Deploy button — always shown, disabled when not deployable -->
+                  <button class="force-btn"
+                    :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
+                    :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
+                    @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && forceDeploy($event, d.uid, d.branch!)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2L12 15"/>
+                      <path d="M7 7L12 2L17 7"/>
+                      <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+                    </svg>
+                    Deploy
+                  </button>
+                  <span v-if="fdErrors[d.uid]" class="run-chip run-chip--failed" :title="fdErrors[d.uid]">Error</span>
+                  <!-- GitHub PR button — always shown, disabled when no PR -->
+                  <a :href="d.prUrl ?? undefined" :target="d.prUrl ? '_blank' : undefined" rel="noopener noreferrer"
+                    :class="['action-link-btn action-link-btn--gh', { 'action-link-btn--disabled': !d.prUrl }]"
+                    :title="d.prUrl ? `View PR #${d.prId}` : 'Not available'"
+                    @click.stop="!d.prUrl && $event.preventDefault()">
+                    <svg class="btn-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M7.177 3.073L9.573.677A.25.25 0 0 1 10 .854v4.792a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354zM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25zM11 2.5h-1V4h1a1 1 0 0 1 1 1v5.628a2.251 2.251 0 1 0 1.5 0V5A2.5 2.5 0 0 0 11 2.5zm1 10.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0zM3.75 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z"/>
+                    </svg>
+                    {{ d.prUrl ? `PR #${d.prId}` : 'PR #0000' }}
+                  </a>
+                  <!-- Jira button — always shown, disabled when no ticket in branch -->
+                  <a :href="getJiraUrl(d.branch) ?? undefined" :target="getJiraUrl(d.branch) ? '_blank' : undefined" rel="noopener noreferrer"
+                    :class="['action-link-btn action-link-btn--jira', { 'action-link-btn--disabled': !getJiraTicket(d.branch) }]"
+                    :title="getJiraTicket(d.branch) ? `View ${getJiraTicket(d.branch)} in Jira` : 'Create a branch from the Jira ticket to auto-link'"
+                    @click.stop="!getJiraUrl(d.branch) && $event.preventDefault()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 256 256">
+	<path d="M0 0h256v256H0z" fill="none" />
+	<defs>
+		<linearGradient id="SVGSBI7obaC" x1="98.031%" x2="58.888%" y1=".161%" y2="40.766%">
+			<stop offset="18%" stop-color="#0052cc" />
+			<stop offset="100%" stop-color="#2684ff" />
+		</linearGradient>
+		<linearGradient id="SVGHifZlbzE" x1="100.665%" x2="55.402%" y1=".455%" y2="44.727%">
+			<stop offset="18%" stop-color="#0052cc" />
+			<stop offset="100%" stop-color="#2684ff" />
+		</linearGradient>
+	</defs>
+	<path fill="#2684ff" d="M244.658 0H121.707a55.5 55.5 0 0 0 55.502 55.502h22.649V77.37c.02 30.625 24.841 55.447 55.466 55.467V10.666C255.324 4.777 250.55 0 244.658 0" />
+	<path fill="url(#SVGSBI7obaC)" d="M183.822 61.262H60.872c.019 30.625 24.84 55.447 55.466 55.467h22.649v21.938c.039 30.625 24.877 55.43 55.502 55.43V71.93c0-5.891-4.776-10.667-10.667-10.667" />
+	<path fill="url(#SVGHifZlbzE)" d="M122.951 122.489H0c0 30.653 24.85 55.502 55.502 55.502h22.72v21.867c.02 30.597 24.798 55.408 55.396 55.466V133.156c0-5.891-4.776-10.667-10.667-10.667" />
+</svg>
+
+                    
+                    {{ getJiraTicket(d.branch) ?? 'Jira #0000' }}
+                  </a>
+                </template>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -1045,6 +1098,54 @@ function isFdBusy(uid: string): boolean {
   white-space: nowrap;
 }
 
+.action-stack {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+}
+
+.action-link-btn {
+  align-items: center;
+  border-radius: 5px;
+  border: 1px solid;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 500;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.action-link-btn--gh {
+  background: rgba(110, 84, 148, 0.08);
+  border-color: rgba(110, 84, 148, 0.25);
+  color: #a78bce;
+}
+.action-link-btn--gh:hover:not(.action-link-btn--disabled) {
+  background: rgba(110, 84, 148, 0.15);
+  border-color: rgba(110, 84, 148, 0.45);
+}
+
+.action-link-btn--jira {
+  background: rgba(38, 132, 255, 0.08);
+  border-color: rgba(38, 132, 255, 0.2);
+  color: #4d9ff0;
+}
+.action-link-btn--jira:hover:not(.action-link-btn--disabled) {
+  background: rgba(38, 132, 255, 0.15);
+  border-color: rgba(38, 132, 255, 0.4);
+}
+
+.action-link-btn--disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
 .fd-na {
   color: #333;
   font-size: 0.8125rem;
@@ -1265,4 +1366,5 @@ function isFdBusy(uid: string): boolean {
   background: rgba(229, 72, 77, 0.12);
   color: #e5484d;
 }
+
 </style>

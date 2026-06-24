@@ -15,8 +15,42 @@ interface DeploymentDetail {
   commitMessage: string | null
   commitAuthor: string | null
   repoUrl: string | null
+  prId: string | null
+  ghOrg: string | null
+  ghRepo: string | null
   regions: string[]
   creator: string | null
+}
+
+interface GhCheck { name: string; status: string; conclusion: string | null }
+interface GhPr {
+  number: number
+  title: string
+  state: string
+  merged: boolean
+  additions: number
+  deletions: number
+  changedFiles: number
+  url: string
+  baseBranch: string | null
+  labels: { name: string; color: string }[]
+  reviews: { approved: number; changesRequested: number }
+  checks: GhCheck[]
+}
+
+interface JiraIssue {
+  key: string
+  summary: string
+  status: string | null
+  statusCategory: string | null
+  type: string | null
+  priority: string | null
+  assignee: { name: string; avatar: string | null } | null
+  reporter: string | null
+  labels: string[]
+  sprint: string | null
+  storyPoints: number | null
+  url: string
 }
 
 interface LogLine {
@@ -160,6 +194,82 @@ function formatDuration(ms: number | null): string {
   return `${Math.floor(s / 60)}m ${s % 60}s`
 }
 
+// ── GitHub PR + Jira integrations ────────────────────────────────────────────
+const JIRA_KEY_RE = /([A-Z]+-\d+)/
+const jiraKey = computed(() => {
+  const m = data.value?.branch?.match(JIRA_KEY_RE)
+  return m ? m[1] : null
+})
+
+const ghPr = ref<GhPr | null>(null)
+const ghPrPending = ref(false)
+const ghPrError = ref(false)
+
+const jiraIssue = ref<JiraIssue | null>(null)
+const jiraPending = ref(false)
+const jiraError = ref(false)
+
+onMounted(async () => {
+  const d = data.value
+  if (!d) return
+  const fetches: Promise<void>[] = []
+
+  if (d.prId && d.ghOrg && d.ghRepo) {
+    ghPrPending.value = true
+    fetches.push(
+      $fetch<GhPr>('/api/github/pr', { query: { owner: d.ghOrg, repo: d.ghRepo, pr: d.prId, sha: d.commitSha ?? '' } })
+        .then(r => { ghPr.value = r })
+        .catch(() => { ghPrError.value = true })
+        .finally(() => { ghPrPending.value = false }),
+    )
+  }
+
+  if (jiraKey.value) {
+    jiraPending.value = true
+    fetches.push(
+      $fetch<JiraIssue>('/api/jira/issue', { query: { key: jiraKey.value } })
+        .then(r => { jiraIssue.value = r })
+        .catch(() => { jiraError.value = true })
+        .finally(() => { jiraPending.value = false }),
+    )
+  }
+
+  await Promise.all(fetches)
+})
+
+function prStateLabel(pr: GhPr) {
+  if (pr.merged) return 'Merged'
+  return pr.state === 'open' ? 'Open' : 'Closed'
+}
+function prStateClass(pr: GhPr) {
+  if (pr.merged) return 'pr-merged'
+  return pr.state === 'open' ? 'pr-open' : 'pr-closed'
+}
+
+function checkIcon(c: GhCheck) {
+  if (c.status !== 'completed') return '●'
+  if (c.conclusion === 'success') return '✓'
+  if (c.conclusion === 'skipped' || c.conclusion === 'neutral') return '○'
+  return '✗'
+}
+function checkClass(c: GhCheck) {
+  if (c.status !== 'completed') return 'check-pending'
+  if (c.conclusion === 'success') return 'check-success'
+  if (c.conclusion === 'skipped' || c.conclusion === 'neutral') return 'check-skipped'
+  return 'check-fail'
+}
+
+function jiraStatusClass(issue: JiraIssue) {
+  const cat = issue.statusCategory
+  if (cat === 'done') return 'jira-done'
+  if (cat === 'indeterminate') return 'jira-inprogress'
+  return 'jira-todo'
+}
+
+function openLink(url: string) {
+  window.open(url, '_blank', 'noopener')
+}
+
 const copied = ref<string | null>(null)
 
 async function copy(value: string, key: string) {
@@ -241,6 +351,105 @@ async function copy(value: string, key: string) {
           <span class="git-meta">{{ [data.commitAuthor, formatTs(data.createdAt), formatDuration(data.buildDurationMs) ? `built in ${formatDuration(data.buildDurationMs)}` : ''].filter(Boolean).join(' · ') }}</span>
         </div>
       </div>
+
+      <!-- GitHub PR card -->
+       <div style="display: flex; gap: 18px;">
+<div v-if="data.prId" class="integration-card"
+        :class="{ 'card-clickable': !!ghPr }"
+        @click="ghPr && openLink(ghPr.url)">
+        <div class="card-header">
+          <svg class="card-brand-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          <span class="card-label">GitHub Pull Request</span>
+          <span v-if="ghPrPending" class="card-spinner" />
+          <span v-if="ghPr" class="card-ext-link">↗</span>
+        </div>
+        <div v-if="ghPrPending" class="card-loading">Loading PR details…</div>
+        <div v-else-if="ghPrError" class="card-error">Failed to load PR details</div>
+        <template v-else-if="ghPr">
+          <div class="info-row">
+            <span class="info-label">Status</span>
+            <span :class="['pr-state-badge', prStateClass(ghPr)]">{{ prStateLabel(ghPr) }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">PR</span>
+            <span class="info-value">#{{ ghPr.number }} {{ ghPr.title }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Review</span>
+            <span v-if="ghPr.reviews.approved" class="review-ok">✓ {{ ghPr.reviews.approved }} approved</span>
+            <span v-else-if="ghPr.reviews.changesRequested" class="review-block">✗ Changes requested</span>
+            <span v-else class="info-value card-muted">Pending</span>
+          </div>
+          <div v-if="ghPr.labels.length" class="info-row">
+            <span class="info-label">Labels</span>
+            <div class="info-chips">
+              <span v-for="l in ghPr.labels" :key="l.name" class="gh-label"
+                :style="{ background: `#${l.color}20`, borderColor: `#${l.color}40`, color: `#${l.color}` }">
+                {{ l.name }}
+              </span>
+            </div>
+          </div>
+        </template>
+      </div>
+<div v-if="jiraKey" class="integration-card"
+        :class="{ 'card-clickable': !!jiraIssue }"
+        @click="jiraIssue && openLink(jiraIssue.url)">
+        <div class="card-header">
+          <svg class="card-brand-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M15.976 0C9.79 0 4.938 4.87 4.938 11.08c0 3.504 1.61 6.632 4.14 8.71L15.976 32l6.898-12.21c2.53-2.078 4.14-5.206 4.14-8.71C27.014 4.87 22.162 0 15.976 0zm0 15.953a4.873 4.873 0 1 1 0-9.746 4.873 4.873 0 0 1 0 9.746z" fill="#2684FF"/>
+          </svg>
+          <span class="card-label">Jira</span>
+          <span v-if="jiraPending" class="card-spinner" />
+          <span v-if="jiraIssue" class="card-ext-link">↗</span>
+        </div>
+        <div v-if="jiraPending" class="card-loading">Loading issue details…</div>
+        <div v-else-if="jiraError" class="card-error">Failed to load Jira issue</div>
+        <template v-else-if="jiraIssue">
+          <div class="info-row">
+            <span class="info-label">Status</span>
+            <span :class="['jira-status-badge', jiraStatusClass(jiraIssue)]">{{ jiraIssue.status }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Issue</span>
+            <span class="info-value">
+              <span class="jira-key-inline">{{ jiraIssue.key }}</span>{{ jiraIssue.summary }}
+            </span>
+          </div>
+          <div v-if="jiraIssue.type || jiraIssue.priority" class="info-row">
+            <span class="info-label">Type</span>
+            <div class="info-chips">
+              <span v-if="jiraIssue.type" class="meta-pill">{{ jiraIssue.type }}</span>
+              <span v-if="jiraIssue.priority" class="meta-pill">{{ jiraIssue.priority }}</span>
+            </div>
+          </div>
+          <div v-if="jiraIssue.assignee" class="info-row">
+            <span class="info-label">Assignee</span>
+            <img v-if="jiraIssue.assignee.avatar" :src="jiraIssue.assignee.avatar" class="assignee-avatar" />
+            <span class="info-value">{{ jiraIssue.assignee.name }}</span>
+          </div>
+          <div v-if="jiraIssue.sprint" class="info-row">
+            <span class="info-label">Sprint</span>
+            <span class="info-value">{{ jiraIssue.sprint }}</span>
+          </div>
+          <div v-if="jiraIssue.storyPoints" class="info-row">
+            <span class="info-label">Points</span>
+            <span class="info-value">{{ jiraIssue.storyPoints }}</span>
+          </div>
+          <div v-if="jiraIssue.labels.length" class="info-row">
+            <span class="info-label">Labels</span>
+            <div class="info-chips">
+              <span v-for="l in jiraIssue.labels" :key="l" class="meta-pill">{{ l }}</span>
+            </div>
+          </div>
+        </template>
+      </div>
+       </div>
+      
+
+      <!-- Jira card -->
+      
 
       <!-- Build Logs accordion -->
       <div class="logs-section">
@@ -695,4 +904,165 @@ async function copy(value: string, key: string) {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Integration cards ───────────────────────────────────────────────────── */
+.integration-card {
+  background: #080808;
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  padding: 0.875rem 1rem;
+  transition: border-color 0.15s;
+}
+
+.card-clickable {
+  cursor: pointer;
+}
+.card-clickable:hover {
+  border-color: #2a2a2a;
+}
+
+.card-header {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.card-brand-icon {
+  color: #555;
+  flex-shrink: 0;
+  height: 14px;
+  width: 14px;
+}
+
+.card-label {
+  color: #444;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.card-spinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #2a2a2a;
+  border-top-color: #555;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.card-ext-link {
+  color: #333;
+  font-size: 0.75rem;
+}
+
+.card-loading { color: #333; font-size: 0.8125rem; }
+.card-error   { color: #e5484d; font-size: 0.8125rem; }
+.card-muted   { color: #555; }
+
+/* Label : Value rows */
+.info-row {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  min-height: 1.6rem;
+}
+
+.info-row + .info-row {
+  border-top: 1px solid #111;
+  margin-top: 0.375rem;
+  padding-top: 0.375rem;
+}
+
+.info-label {
+  color: #444;
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  width: 64px;
+}
+
+.info-value {
+  color: #ccc;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.info-chips {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* PR state badge */
+.pr-state-badge {
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pr-open   { background: rgba(0, 201, 80, 0.1);    color: #00c950; }
+.pr-merged { background: rgba(110, 84, 148, 0.12); color: #a78bce; }
+.pr-closed { background: rgba(229, 72, 77, 0.1);   color: #e5484d; }
+
+/* Review */
+.review-ok    { color: #00c950; font-size: 0.8125rem; }
+.review-block { color: #e5484d; font-size: 0.8125rem; }
+
+/* GitHub labels */
+.gh-label {
+  border: 1px solid;
+  border-radius: 10px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+}
+
+/* Jira status badge */
+.jira-status-badge {
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.jira-done       { background: rgba(0, 201, 80, 0.1);   color: #00c950; }
+.jira-inprogress { background: rgba(255, 153, 10, 0.1); color: #ff990a; }
+.jira-todo       { background: rgba(77, 159, 240, 0.1); color: #4d9ff0; }
+
+.jira-key-inline {
+  color: #4d9ff0;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 0.75rem;
+  margin-right: 0.375rem;
+}
+
+/* Generic meta pills */
+.meta-pill {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 4px;
+  color: #555;
+  font-size: 0.625rem;
+  font-weight: 500;
+  padding: 0.1rem 0.375rem;
+}
+
+.assignee-avatar {
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 16px;
+  width: 16px;
+}
 </style>
