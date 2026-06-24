@@ -35,9 +35,13 @@ function getJiraUrl(branch: string | null): string | null {
   return ticket ? `https://${jiraOrg}.atlassian.net/browse/${ticket}` : null
 }
 
-const { data, pending, error, refresh } = await useFetch<Deployment[]>('/api/deployments')
+const collapsed = ref((route.query.collapse as string) !== '0')
+const { data, pending, error, refresh } = await useFetch<Deployment[]>('/api/deployments', {
+  query: { collapse: collapsed },
+})
 const { data: project } = await useFetch<{ name: string }>('/api/project')
 
+const openDropdown = ref<string | null>(null)
 const cancelling = ref<string | null>(null)
 const CANCELLABLE = new Set(['BUILDING', 'QUEUED', 'INITIALIZING'])
 const DEPLOYABLE = new Set(['CANCELED', 'BLOCKED'])
@@ -69,10 +73,16 @@ onMounted(() => {
     if (e.key === 'Escape') {
       if (confirmPending.value) confirmPending.value = null
       if (deployBranchDialog.value.open) deployBranchDialog.value.open = false
+      openDropdown.value = null
     }
   }
+  const onDocClick = () => { openDropdown.value = null }
   window.addEventListener('keydown', onKeydown)
-  onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+  document.addEventListener('click', onDocClick)
+  onUnmounted(() => {
+    window.removeEventListener('keydown', onKeydown)
+    document.removeEventListener('click', onDocClick)
+  })
 })
 
 function syncUrl() {
@@ -80,10 +90,11 @@ function syncUrl() {
   if (search.value) query.q = search.value
   if (filterStatus.value) query.status = filterStatus.value
   if (filterAuthor.value) query.author = filterAuthor.value
+  if (!collapsed.value) query.collapse = '0'
   router.replace({ query })
 }
 
-watch([filterStatus, filterAuthor], syncUrl)
+watch([filterStatus, filterAuthor, collapsed], syncUrl)
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 watch(search, () => {
@@ -301,7 +312,7 @@ async function runForceDeploy(uid: string, branch: string) {
       inspectorUrl: null,
       branch,
       commitSha: null,
-      commitMessage: 'Force deploy',
+      commitMessage: 'chore: add an empty commit.',
       commitAuthor: null,
       _pending: true,
       _originUid: uid,
@@ -361,9 +372,10 @@ function isFdBusy(uid: string): boolean {
         <button class="btn btn-primary" @click="openDeployBranchDialog">
           <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2L12 15"/>
-            <path d="M7 7L12 2L17 7"/>
-            <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+            <path d="M12 15 9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
           </svg>
           Deploy a Branch
         </button>
@@ -404,7 +416,26 @@ function isFdBusy(uid: string): boolean {
       <table class="table">
         <thead>
           <tr>
-            <th>Branch / Commit</th>
+            <th>
+              <div class="th-branch-header">
+                <button
+                  class="collapse-icon-btn"
+                  :class="{ 'collapse-icon-btn--on': collapsed }"
+                  :title="collapsed ? 'Expand branches (show all deployments)' : 'Collapse branches (latest per branch)'"
+                  @click.stop="collapsed = !collapsed"
+                >
+                 <svg v-if="collapsed" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32">
+  <path d="M0 0h32v32H0z" fill="none" />
+  <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m23 26l-7-7l-7 7M9 6l7 7l7-7" />
+</svg> 
+<svg v-else xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+  <path d="M0 0h24v24H0z" fill="none" />
+  <path fill="currentColor" d="m12 22l-6-6l1.425-1.425L12 19.15l4.575-4.575L18 16zM7.45 9.4L6 8l6-6l6 6l-1.45 1.4L12 4.85z" />
+</svg>
+                </button>
+                Branch / Commit
+              </div>
+            </th>
             <th>Status</th>
             <th>Created At</th>
             <th>Commit Author</th>
@@ -492,48 +523,55 @@ function isFdBusy(uid: string): boolean {
                     @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && forceDeploy($event, d.uid, d.branch!)">
                     <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" viewBox="0 0 24 24"
                       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 2L12 15"/>
-                      <path d="M7 7L12 2L17 7"/>
-                      <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+                      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+                      <path d="M12 15 9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+                      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
                     </svg>
                     Deploy
                   </button>
                   <span v-if="fdErrors[d.uid]" class="run-chip run-chip--failed" :title="fdErrors[d.uid]">Error</span>
-                  <!-- GitHub PR button — always shown, disabled when no PR -->
-                  <a :href="d.prUrl ?? undefined" :target="d.prUrl ? '_blank' : undefined" rel="noopener noreferrer"
-                    :class="['action-link-btn action-link-btn--gh', { 'action-link-btn--disabled': !d.prUrl }]"
-                    :title="d.prUrl ? `View PR #${d.prId}` : 'Not available'"
-                    @click.stop="!d.prUrl && $event.preventDefault()">
-                    <svg class="btn-icon" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M7.177 3.073L9.573.677A.25.25 0 0 1 10 .854v4.792a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354zM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25zM11 2.5h-1V4h1a1 1 0 0 1 1 1v5.628a2.251 2.251 0 1 0 1.5 0V5A2.5 2.5 0 0 0 11 2.5zm1 10.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0zM3.75 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z"/>
-                    </svg>
-                    {{ d.prUrl ? `PR #${d.prId}` : 'PR #0000' }}
-                  </a>
-                  <!-- Jira button — always shown, disabled when no ticket in branch -->
-                  <a :href="getJiraUrl(d.branch) ?? undefined" :target="getJiraUrl(d.branch) ? '_blank' : undefined" rel="noopener noreferrer"
-                    :class="['action-link-btn action-link-btn--jira', { 'action-link-btn--disabled': !getJiraTicket(d.branch) }]"
-                    :title="getJiraTicket(d.branch) ? `View ${getJiraTicket(d.branch)} in Jira` : 'Create a branch from the Jira ticket to auto-link'"
-                    @click.stop="!getJiraUrl(d.branch) && $event.preventDefault()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 256 256">
-	<path d="M0 0h256v256H0z" fill="none" />
-	<defs>
-		<linearGradient id="SVGSBI7obaC" x1="98.031%" x2="58.888%" y1=".161%" y2="40.766%">
-			<stop offset="18%" stop-color="#0052cc" />
-			<stop offset="100%" stop-color="#2684ff" />
-		</linearGradient>
-		<linearGradient id="SVGHifZlbzE" x1="100.665%" x2="55.402%" y1=".455%" y2="44.727%">
-			<stop offset="18%" stop-color="#0052cc" />
-			<stop offset="100%" stop-color="#2684ff" />
-		</linearGradient>
-	</defs>
-	<path fill="#2684ff" d="M244.658 0H121.707a55.5 55.5 0 0 0 55.502 55.502h22.649V77.37c.02 30.625 24.841 55.447 55.466 55.467V10.666C255.324 4.777 250.55 0 244.658 0" />
-	<path fill="url(#SVGSBI7obaC)" d="M183.822 61.262H60.872c.019 30.625 24.84 55.447 55.466 55.467h22.649v21.938c.039 30.625 24.877 55.43 55.502 55.43V71.93c0-5.891-4.776-10.667-10.667-10.667" />
-	<path fill="url(#SVGHifZlbzE)" d="M122.951 122.489H0c0 30.653 24.85 55.502 55.502 55.502h22.72v21.867c.02 30.597 24.798 55.408 55.396 55.466V133.156c0-5.891-4.776-10.667-10.667-10.667" />
-</svg>
-
-                    
-                    {{ getJiraTicket(d.branch) ?? 'Jira #0000' }}
-                  </a>
+                  <!-- 3-dot options menu -->
+                  <div class="dots-menu" @click.stop>
+                    <button class="dots-btn" :class="{ 'dots-btn--open': openDropdown === d.uid }"
+                      @click="openDropdown = openDropdown === d.uid ? null : d.uid">
+                      <svg width="3" height="13" viewBox="0 0 3 13" fill="currentColor">
+                        <circle cx="1.5" cy="1.5" r="1.5"/>
+                        <circle cx="1.5" cy="6.5" r="1.5"/>
+                        <circle cx="1.5" cy="11.5" r="1.5"/>
+                      </svg>
+                    </button>
+                    <div v-if="openDropdown === d.uid" class="dots-dropdown">
+                      <a :href="d.prUrl ?? undefined" :target="d.prUrl ? '_blank' : undefined" rel="noopener noreferrer"
+                        :class="['dots-item', { 'dots-item--disabled': !d.prUrl }]"
+                        :title="d.prUrl ? `View PR #${d.prId}` : 'No PR linked'"
+                        @click="!d.prUrl ? $event.preventDefault() : openDropdown = null">
+                        <svg class="dots-item-icon" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M7.177 3.073L9.573.677A.25.25 0 0 1 10 .854v4.792a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354zM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25zM11 2.5h-1V4h1a1 1 0 0 1 1 1v5.628a2.251 2.251 0 1 0 1.5 0V5A2.5 2.5 0 0 0 11 2.5zm1 10.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0zM3.75 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5z"/>
+                        </svg>
+                        {{ d.prUrl ? `PR #${d.prId}` : 'No PR linked' }}
+                      </a>
+                      <a :href="getJiraUrl(d.branch) ?? undefined" :target="getJiraUrl(d.branch) ? '_blank' : undefined" rel="noopener noreferrer"
+                        :class="['dots-item', { 'dots-item--disabled': !getJiraTicket(d.branch) }]"
+                        :title="getJiraTicket(d.branch) ? `View ${getJiraTicket(d.branch)} in Jira` : 'No Jira ticket in branch name'"
+                        @click="!getJiraUrl(d.branch) ? $event.preventDefault() : openDropdown = null">
+                        <svg class="dots-item-icon" viewBox="0 0 16 16" fill="#2684ff">
+                          <path d="M15.29 0H7.61a3.47 3.47 0 0 0 3.47 3.47h1.42v1.38a3.47 3.47 0 0 0 3.47 3.47V.71A.71.71 0 0 0 15.29 0"/>
+                          <path fill="url(#jira-a)" d="M11.47 3.83H3.8a3.47 3.47 0 0 0 3.47 3.47h1.41v1.37a3.47 3.47 0 0 0 3.47 3.47V4.54a.71.71 0 0 0-.71-.71"/>
+                          <path fill="url(#jira-b)" d="M7.66 7.66H0a3.47 3.47 0 0 0 3.47 3.47h1.41v1.37A3.47 3.47 0 0 0 8.35 16V8.37a.71.71 0 0 0-.7-.71"/>
+                          <defs>
+                            <linearGradient id="jira-a" x1="100%" x2="55%" y1="0%" y2="45%">
+                              <stop offset="18%" stop-color="#0052cc"/><stop offset="100%" stop-color="#2684ff"/>
+                            </linearGradient>
+                            <linearGradient id="jira-b" x1="100%" x2="55%" y1="0%" y2="45%">
+                              <stop offset="18%" stop-color="#0052cc"/><stop offset="100%" stop-color="#2684ff"/>
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        {{ getJiraTicket(d.branch) ?? 'No Jira ticket' }}
+                      </a>
+                    </div>
+                  </div>
                 </template>
               </div>
             </td>
@@ -550,9 +588,10 @@ function isFdBusy(uid: string): boolean {
         <div class="dialog-icon-wrap">
           <svg class="dialog-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2L12 15"/>
-            <path d="M7 7L12 2L17 7"/>
-            <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/>
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+            <path d="M12 15 9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
           </svg>
         </div>
         <p class="dialog-title">Deploy a Branch</p>
@@ -777,6 +816,42 @@ function isFdBusy(uid: string): boolean {
 .filter-select[value]:not([value=""]) {
   border-color: #0070f3;
   color: #ededed;
+}
+
+.th-branch-header {
+  align-items: center;
+  display: flex;
+  gap: 0.375rem;
+}
+
+.collapse-icon-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #444;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 0.15rem;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.collapse-icon-btn svg {
+  height: 13px;
+  width: 13px;
+}
+
+.collapse-icon-btn:hover {
+  background: #111;
+  border-color: #333;
+  color: #888;
+}
+
+.collapse-icon-btn--on {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ccc;
 }
 
 .clear-btn {
@@ -1106,49 +1181,72 @@ function isFdBusy(uid: string): boolean {
   gap: 0.35rem;
 }
 
-.action-link-btn {
+/* 3-dot dropdown */
+.dots-menu {
+  position: relative;
+}
+
+.dots-btn {
   align-items: center;
+  background: #111;
+  border: 1px solid #383838;
   border-radius: 5px;
-  border: 1px solid;
+  color: #555;
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.75rem;
-  font-weight: 500;
-  gap: 0.35rem;
-  padding: 0.25rem 0.6rem;
-  text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.action-link-btn--gh {
-  background: rgba(110, 84, 148, 0.08);
-  border-color: rgba(110, 84, 148, 0.25);
-  color: #a78bce;
-}
-.action-link-btn--gh:hover:not(.action-link-btn--disabled) {
-  background: rgba(110, 84, 148, 0.15);
-  border-color: rgba(110, 84, 148, 0.45);
-}
-
-.action-link-btn--jira {
-  background: rgba(38, 132, 255, 0.08);
-  border-color: rgba(38, 132, 255, 0.2);
-  color: #4d9ff0;
-}
-.action-link-btn--jira:hover:not(.action-link-btn--disabled) {
-  background: rgba(38, 132, 255, 0.15);
-  border-color: rgba(38, 132, 255, 0.4);
-}
-
-.action-link-btn--disabled {
-  cursor: not-allowed;
-  opacity: 0.3;
-}
-
-.fd-na {
-  color: #333;
   font-size: 0.8125rem;
+  justify-content: center;
+  padding: 0.3rem 0.5rem;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.dots-btn:hover,
+.dots-btn--open {
+  background: #1a1a1a;
+  border-color: #555;
+  color: #aaa;
+}
+
+.dots-dropdown {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 7px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  min-width: 160px;
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 5px);
+  z-index: 50;
+}
+
+.dots-item {
+  align-items: center;
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.8125rem;
+  gap: 0.5rem;
+  padding: 0.55rem 0.875rem;
+  text-decoration: none;
+  transition: background 0.1s, color 0.1s;
+}
+
+.dots-item:hover:not(.dots-item--disabled) {
+  background: #1a1a1a;
+  color: #ededed;
+}
+
+.dots-item--disabled {
+  color: #444;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dots-item-icon {
+  flex-shrink: 0;
+  height: 13px;
+  width: 13px;
 }
 
 .force-btn {

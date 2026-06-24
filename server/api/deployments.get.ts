@@ -13,7 +13,10 @@ interface VercelResponse {
   deployments: VercelDeployment[]
 }
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const query = getQuery(event)
+  const collapse = query.collapse === 'true' || query.collapse === '1'
+
   const token = process.env.PROJECT_TOKEN
   const projectId = process.env.PROJECT_ID
   const teamId = process.env.TEAM_ID
@@ -38,7 +41,7 @@ export default defineEventHandler(async () => {
 
   const data: VercelResponse = await res.json()
 
-  return data.deployments.map((d) => {
+  const mapped = data.deployments.map((d) => {
     const meta = d.meta ?? {}
 
     const branch =
@@ -85,5 +88,16 @@ export default defineEventHandler(async () => {
       prUrl,
       prId,
     }
+  })
+
+  if (!collapse) return mapped
+
+  // Keep only the latest deployment per branch (Vercel returns newest-first)
+  const seen = new Set<string>()
+  return mapped.filter((d) => {
+    const key = d.branch ?? d.uid
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 })

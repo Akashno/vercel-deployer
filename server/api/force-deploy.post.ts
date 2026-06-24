@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
         'X-GitHub-Api-Version': '2022-11-28',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ref: 'main', inputs: { branch, message: 'Force deploy' } }),
+      body: JSON.stringify({ ref: 'main', inputs: { branch, message: 'chore: add an empty commit' } }),
     },
   )
 
