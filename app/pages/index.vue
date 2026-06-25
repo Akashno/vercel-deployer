@@ -18,7 +18,6 @@ interface Deployment {
 
 const route = useRoute()
 const router = useRouter()
-const autoRefresh = ref(false)
 
 const { public: { jiraOrg } } = useRuntimeConfig()
 
@@ -174,13 +173,6 @@ function formatCreatedAt(ts: number | null): string {
 
 let timer: ReturnType<typeof setInterval> | null = null
 
-watch(autoRefresh, (enabled) => {
-  if (enabled) {
-    timer = setInterval(() => refresh(), 30_000)
-  } else {
-    if (timer !== null) { clearInterval(timer); timer = null }
-  }
-})
 
 onUnmounted(() => {
   if (timer !== null) clearInterval(timer)
@@ -361,30 +353,14 @@ function isFdBusy(uid: string): boolean {
         <span v-if="data" class="count">{{ filteredDeployments.length }}</span>
       </div>
       <div class="controls">
-        <button class="btn" :disabled="pending" @click="refresh">
-          <span :class="{ spinning: pending }">↻</span>
-          Refresh
-        </button>
-        <button class="btn auto-btn" :class="{ 'auto-btn--on': autoRefresh }" @click="autoRefresh = !autoRefresh">
-          <span class="auto-dot" :class="{ 'auto-dot--on': autoRefresh }" />
-          Auto (30s)
-        </button>
-        <button class="btn btn-primary" @click="openDeployBranchDialog">
-          <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
-            <path d="M12 15 9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
-            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
-          </svg>
-          Deploy a Branch
-        </button>
+        
         <button class="btn logout-btn" @click="logout">Logout</button>
       </div>
     </header>
 
     <!-- Filter bar -->
-    <div v-if="data" class="filter-bar">
+    <div v-if="data" style="display: flex;justify-content: space-between; justify-items: center;" >
+      <div class="filter-bar">
       <input ref="searchInput" v-model="search" class="search" type="search"
         placeholder="Search branch, commit, author… (⌘K)" aria-label="Search deployments" />
       <select v-model="filterStatus" class="filter-select">
@@ -396,6 +372,29 @@ function isFdBusy(uid: string): boolean {
         <option v-for="a in uniqueAuthors" :key="a" :value="a">{{ a }}</option>
       </select>
       <button v-if="hasFilters" class="btn clear-btn" @click="clearFilters">✕ Clear</button>
+      </div>
+      <div style="display: flex; height: fit-content; gap: 10px;">
+
+<button class="btn" :disabled="pending" @click="refresh">
+          <span :class="{ spinning: pending }">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512" style="margin-top: 2px;">
+  <path d="M0 0h512v512H0z" fill="none" />
+  <path fill="currentColor" d="M142.9 142.9c-17.5 17.5-30.1 38-37.8 59.8c-5.9 16.7-24.2 25.4-40.8 19.5S38.9 198 44.8 181.4c10.8-30.7 28.4-59.4 52.8-83.8c87.2-87.2 228.3-87.5 315.8-1L455 55c6.9-6.9 17.2-8.9 26.2-5.2S496 62.3 496 72v128c0 13.3-10.7 24-24 24H344c-9.7 0-18.5-5.8-22.2-14.8s-1.7-19.3 5.2-26.2l41.1-41.1c-62.6-61.5-163.1-61.2-225.3 1zM16 312c0-13.3 10.7-24 24-24h128c9.7 0 18.5 5.8 22.2 14.8s1.7 19.3-5.2 26.2l-41.1 41.1c62.6 61.5 163.1 61.2 225.3-1c17.5-17.5 30.1-38 37.8-59.8c5.9-16.7 24.2-25.4 40.8-19.5s25.4 24.2 19.5 40.8c-10.8 30.6-28.4 59.3-52.9 83.8c-87.2 87.2-228.3 87.5-315.8 1L57 457c-6.9 6.9-17.2 8.9-26.2 5.2S16 449.7 16 440V312.1z" />
+</svg>
+          </span>
+          Refresh
+        </button>
+        <button class="btn btn-primary" @click="openDeployBranchDialog">
+          <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+            <path d="M12 15 9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+          </svg>
+          Deploy a Branch
+        </button>
+      </div>
     </div>
 
     <div v-if="pending && !data" class="empty-state">
