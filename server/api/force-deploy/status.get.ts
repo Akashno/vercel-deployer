@@ -1,57 +1,93 @@
-interface GithubRun {
-  id: number
-  status: string
-  conclusion: string | null
-  html_url: string
-  created_at: string
+import { defineEventHandler, getQuery, createError } from 'h3'
+import { vercelApi } from '~~/server/utils/api'
+
+interface VercelDeploymentMeta {
+  githubCommitRef?: string
+  gitlabCommitRef?: string
+  bitbucketCommitRef?: string
+  githubCommitSha?: string
+  gitlabCommitSha?: string
+  bitbucketCommitSha?: string
+}
+
+interface VercelDeployment {
+  uid: string
+  state?: string
+  readyState?: string
+  inspectorUrl?: string
+  createdAt?: number
+  created?: number
+  meta?: VercelDeploymentMeta
+}
+
+interface VercelDeploymentsResponse {
+  deployments: VercelDeployment[]
 }
 
 export default defineEventHandler(async (event) => {
-  const { branch, since } = getQuery(event) as { branch?: string; since?: string }
-  if (!branch) throw createError({ statusCode: 400, message: 'branch is required' })
+  const { branch, sha, since } = getQuery(event) as { branch?: string; sha?: string; since?: string }
+  if (!branch) {
+    throw createError({ statusCode: 400, message: 'Branch name is required' })
+  }
 
-  const token = process.env.GITHUB_TOKEN
   const owner = process.env.GITHUB_OWNER
   const repo = process.env.GITHUB_REPO
 
-  if (!token || !owner || !repo) {
-    throw createError({ statusCode: 500, message: 'Missing GitHub env vars' })
-  }
-
-  const url = new URL(
-    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/manual-empty-commit.yml/runs`,
-  )
-  url.searchParams.set('branch', branch)
-  url.searchParams.set('per_page', '5')
-
-  const res = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
+  // Fetch recent deployments for the project using the shared vercelApi client
+  // projectId and teamId are automatically appended by the client's interceptor!
+  const data = await vercelApi<VercelDeploymentsResponse>('/deployments', {
+    query: { limit: '20' },
   })
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw createError({ statusCode: res.status, message: `GitHub API error: ${res.statusText}. ${body}` })
+  const sinceMs = since ? parseInt(since, 10) : 0
+  const commitLink = owner && repo && sha
+    ? `https://github.com/${owner}/${repo}/commit/${sha}`
+    : ''
+
+  // Find the deployment that matches the branch and our newly pushed commit SHA
+  const deployment = data.deployments.find((d) => {
+    const meta = d.meta ?? {}
+    const dBranch = meta.githubCommitRef ?? meta.gitlabCommitRef ?? meta.bitbucketCommitRef ?? null
+    const dSha = meta.githubCommitSha ?? meta.gitlabCommitSha ?? meta.bitbucketCommitSha ?? null
+
+    if (dBranch !== branch) return false
+
+    if (sha) {
+      return dSha === sha
+    } else {
+      const created = d.createdAt ?? d.created ?? 0
+      return created >= sinceMs - 30_000
+    }
+  })
+
+  if (!deployment) {
+    // Vercel has not picked it up yet
+    return {
+      id: sha || 'pending',
+      status: 'queued',
+      conclusion: null,
+      html_url: commitLink,
+    }
   }
 
-  const data = await res.json() as { workflow_runs: GithubRun[] }
-  const sinceMs = since ? parseInt(since, 10) : 0
+  // Map Vercel deployment state (QUEUED, BUILDING, READY, ERROR, CANCELED) to standard tracking statuses
+  const state = (deployment.readyState ?? deployment.state ?? 'QUEUED').toUpperCase()
+  let status = 'in_progress'
+  let conclusion: string | null = null
 
-  // Find newest run created at/after dispatch time (90s buffer for GitHub lag + clock skew)
-  const run = sinceMs > 0
-    ? data.workflow_runs.find(r => new Date(r.created_at).getTime() >= sinceMs - 90_000) ?? null
-    : data.workflow_runs[0] ?? null
-
-  if (!run) return null
+  if (state === 'READY') {
+    status = 'completed'
+    conclusion = 'success'
+  } else if (state === 'ERROR' || state === 'CANCELED') {
+    status = 'completed'
+    conclusion = 'failure'
+  }
 
   return {
-    id: run.id,
-    status: run.status,
-    conclusion: run.conclusion,
-    html_url: run.html_url,
-    created_at: run.created_at,
+    id: deployment.uid,
+    status,
+    conclusion,
+    html_url: deployment.inspectorUrl ? `https://${deployment.inspectorUrl}` : commitLink,
+    created_at: deployment.createdAt ?? deployment.created ?? null,
   }
 })

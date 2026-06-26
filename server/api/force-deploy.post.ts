@@ -1,35 +1,71 @@
+import { defineEventHandler, readBody, createError } from 'h3'
+import { githubApi } from '~~/server/utils/api'
+
+interface GithubRefResponse {
+  ref: string
+  node_id: string
+  url: string
+  object: {
+    sha: string
+    type: string
+    url: string
+  }
+}
+
+interface GithubCommitResponse {
+  sha: string
+  url: string
+  tree: {
+    sha: string
+    url: string
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const { branch } = await readBody<{ branch: string }>(event)
   if (!branch?.trim()) {
-    throw createError({ statusCode: 400, message: 'branch is required' })
+    throw createError({ statusCode: 400, message: 'Branch name is required' })
   }
 
-  const token = process.env.GITHUB_TOKEN
-  const owner = process.env.GITHUB_OWNER
-  const repo = process.env.GITHUB_REPO
+  // 1. Get the latest commit SHA of the branch
+  const refData = await githubApi<GithubRefResponse>(`/git/ref/heads/${branch}`)
+  const parentCommitSha = refData.object.sha
 
-  if (!token || !owner || !repo) {
-    throw createError({ statusCode: 500, message: 'Missing GITHUB_TOKEN, GITHUB_OWNER, or GITHUB_REPO env vars' })
-  }
+  // 2. Get the commit tree SHA
+  const commitData = await githubApi<GithubCommitResponse>(`/git/commits/${parentCommitSha}`)
+  const treeSha = commitData.tree.sha
 
-  const res = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/manual-empty-commit.yml/dispatches`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'Content-Type': 'application/json',
+  // 3. Create a new empty commit pointing to the parent tree
+  const newCommit = await githubApi<{ sha: string }>(`/git/commits`, {
+    method: 'POST',
+    body: {
+      message: 'chore: redeploy branch',
+      tree: treeSha,
+      parents: [parentCommitSha],
+      author: {
+        name: 'github-actions[bot]',
+        email: '41898282+github-actions[bot]@users.noreply.github.com',
       },
-      body: JSON.stringify({ ref: 'main', inputs: { branch, message: 'chore: add an empty commit' } }),
+      committer: {
+        name: 'github-actions[bot]',
+        email: '41898282+github-actions[bot]@users.noreply.github.com',
+      },
     },
-  )
+  })
+  const newCommitSha = newCommit.sha
 
-  if (res.status !== 204) {
-    const body = await res.text().catch(() => '')
-    throw createError({ statusCode: res.status, message: `GitHub API error: ${res.statusText}. ${body}` })
+  // 4. Update the branch ref to point to the new commit
+  await githubApi(`/git/refs/heads/${branch}`, {
+    method: 'PATCH',
+    body: {
+      sha: newCommitSha,
+      force: true,
+    },
+  })
+
+  return {
+    ok: true,
+    sha: newCommitSha,
+    url: `https://github.com/${process.env.GITHUB_OWNER}/${process.env.GITHUB_REPO}/commit/${newCommitSha}`,
   }
-
-  return { ok: true }
 })

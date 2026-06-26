@@ -218,11 +218,13 @@ async function handleDeployBranch(branchName: string) {
 const pendingDeployments = ref<Deployment[]>([])
 const fdTimers = new Map<string, ReturnType<typeof setInterval>>()
 const fdDispatchedAt = new Map<string, number>()
+const fdSha = new Map<string, string>()
 const fdErrors = ref<Record<string, string>>({})
 
 function stopFdPoll(uid: string) {
   const t = fdTimers.get(uid)
   if (t !== undefined) { clearInterval(t); fdTimers.delete(uid) }
+  fdSha.delete(uid)
 }
 
 function updatePending(originUid: string, patch: Partial<Deployment>) {
@@ -232,13 +234,15 @@ function updatePending(originUid: string, patch: Partial<Deployment>) {
 
 function removePending(originUid: string) {
   pendingDeployments.value = pendingDeployments.value.filter(d => d._originUid !== originUid)
+  fdSha.delete(originUid)
 }
 
 async function pollRunStatus(uid: string, branch: string) {
   const since = fdDispatchedAt.get(uid) ?? Date.now()
+  const sha = fdSha.get(uid) ?? ''
   try {
-    type Run = { id: number; status: string; conclusion: string | null; html_url: string }
-    const run = await $fetch<Run | null>('/api/force-deploy/status', { query: { branch, since } })
+    type Run = { id: string | number; status: string; conclusion: string | null; html_url: string }
+    const run = await $fetch<Run | null>('/api/force-deploy/status', { query: { branch, sha, since } })
     if (!run) return
 
     if (run.status === 'completed') {
@@ -289,8 +293,8 @@ async function runForceDeploy(uid: string, branch: string) {
       inspectorUrl: null,
       branch,
       commitSha: null,
-      commitMessage: 'chore: add an empty commit.',
-      commitAuthor: null,
+      commitMessage: 'Creating empty commit...',
+      commitAuthor: 'github-actions[bot]',
       _pending: true,
       _originUid: uid,
       _githubRunUrl: null,
@@ -301,7 +305,15 @@ async function runForceDeploy(uid: string, branch: string) {
   fdDispatchedAt.set(uid, Date.now())
 
   try {
-    await $fetch('/api/force-deploy', { method: 'POST', body: { branch } })
+    const res = await $fetch<{ ok: boolean; sha?: string; url?: string }>('/api/force-deploy', { method: 'POST', body: { branch } })
+    if (res?.sha) {
+      fdSha.set(uid, res.sha)
+      updatePending(uid, {
+        commitSha: res.sha.slice(0, 7),
+        commitMessage: 'chore: force redeploy [skip ci]',
+        _githubRunUrl: res.url,
+      })
+    }
   } catch (err: any) {
     removePending(uid)
     fdErrors.value[uid] = err?.data?.message ?? err?.message ?? 'Failed to trigger deploy'
@@ -309,16 +321,16 @@ async function runForceDeploy(uid: string, branch: string) {
   }
 
   await pollRunStatus(uid, branch)
-  const t = setInterval(() => pollRunStatus(uid, branch), 3_000)
+  const t = setInterval(() => pollRunStatus(uid, branch), 4_000)
   fdTimers.set(uid, t)
 
   setTimeout(() => {
     const phantom = pendingDeployments.value.find(d => d._originUid === uid)
-    if (phantom && !phantom._githubRunUrl) {
+    if (phantom && phantom.state === 'QUEUED') {
       stopFdPoll(uid)
-      updatePending(uid, { state: 'ERROR', commitMessage: 'No run appeared — check GitHub Actions' })
+      updatePending(uid, { state: 'ERROR', commitMessage: 'Deployment did not start on Vercel' })
     }
-  }, 60_000)
+  }, 90_000)
 }
 
 function isFdBusy(uid: string): boolean {

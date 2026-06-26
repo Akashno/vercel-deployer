@@ -1,3 +1,6 @@
+import { defineEventHandler, getQuery } from 'h3'
+import { vercelApi } from '~~/server/utils/api'
+
 interface VercelDeployment {
   uid: string
   state?: string
@@ -17,29 +20,9 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const collapse = query.collapse === 'true' || query.collapse === '1'
 
-  const token = process.env.PROJECT_TOKEN
-  const projectId = process.env.PROJECT_ID
-  const teamId = process.env.TEAM_ID
-
-  if (!token || !projectId) {
-    throw createError({ statusCode: 500, message: 'Missing VERCEL_TOKEN or PROJECT_ID env vars' })
-  }
-
-  const url = new URL('https://api.vercel.com/v6/deployments')
-  url.searchParams.set('limit', '50')
-  url.searchParams.set('projectId', projectId)
-  if (teamId) url.searchParams.set('teamId', teamId)
-
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${token}` },
+  const data = await vercelApi<VercelResponse>('/deployments', {
+    query: { limit: '50' },
   })
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw createError({ statusCode: res.status, message: `Vercel API error: ${res.statusText}. ${body}` })
-  }
-
-  const data: VercelResponse = await res.json()
 
   const mapped = data.deployments.map((d) => {
     const meta = d.meta ?? {}
