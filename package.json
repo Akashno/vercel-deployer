@@ -1,7 +1,13 @@
 {
   "name": "vercel-deployments",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted dashboard for viewing and managing Vercel deployments without paid seats, with GitHub PR and Jira context.",
+  "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/<your-username>/vercel-deployments.git"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
