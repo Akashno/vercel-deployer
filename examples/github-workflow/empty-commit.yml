@@ -1,0 +1,54 @@
+name: Manual empty commit
+
+# Manually trigger an empty commit on a chosen branch.
+# Useful for re-running branch-triggered automation or nudging deploys.
+#
+# Copy this file into the repository you deploy to Vercel, at:
+#   .github/workflows/empty-commit.yml
+# The Vercel Deployments dashboard triggers it via the GitHub API to force a
+# deploy without needing a paid Vercel team seat. See the project README.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to push the empty commit to"
+        type: string
+        required: true
+        default: "main"
+      message:
+        description: "Commit message"
+        type: string
+        required: false
+        default: "chore: manual empty commit"
+
+# Prevent overlapping runs against the same branch.
+concurrency:
+  group: empty-commit-${{ github.event.inputs.branch }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  empty_commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create empty commit
+        run: git commit --allow-empty -m "${{ inputs.message }}"
+
+      - name: Push to target branch
+        run: git push origin "HEAD:${{ inputs.branch }}"

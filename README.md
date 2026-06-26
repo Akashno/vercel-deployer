@@ -19,6 +19,63 @@ ticket context surfaced inline.
 - 🔗 Inline GitHub PR links and Jira ticket links (auto-detected from branch names)
 - 🔐 Username/password auth in front of the whole dashboard
 
+## How force-deploy works (bypassing Vercel's seat restriction)
+
+Vercel only lets **paid team members** trigger a deployment from the dashboard
+or CLI. If you want non-seat users (PMs, QA, clients) to be able to redeploy a
+branch — or you just want to re-run a build that was `CANCELED` or `BLOCKED`
+without changing code — you normally can't, because triggering a deploy requires
+a Vercel seat.
+
+This tool works around that. Vercel *does* deploy on any **git push** to a
+connected branch, regardless of who is logged into the dashboard. So instead of
+asking Vercel to deploy, we push a harmless **empty commit** to the branch as
+the `github-actions[bot]` identity:
+
+```bash
+git commit --allow-empty -m "chore: manual empty commit"
+git push origin HEAD:<branch>
+```
+
+That produces a new commit SHA with zero file changes. Vercel sees a new push
+and starts a fresh deployment — no paid seat involved, and no real change to your
+code or history.
+
+### Setting it up in your project
+
+The empty commit is performed by a GitHub Actions workflow that lives **in the
+repository you deploy to Vercel**. A ready-to-use copy is included here:
+[`.github/workflows/empty-commit.yml`](./.github/workflows/empty-commit.yml).
+
+**Why this workflow is required:** force-deploy does nothing on its own — the
+dashboard has no way to push to your repo directly. This workflow is the piece
+that actually performs the empty commit and push from inside GitHub Actions
+(authenticated as `github-actions[bot]`), which is what Vercel accepts as a
+deploy trigger. Without it installed in your deploy repo, the force-deploy
+button has nothing to call.
+
+1. Copy [`.github/workflows/empty-commit.yml`](./.github/workflows/empty-commit.yml)
+   into your deployment repo at the same path.
+2. Commit and push it to that repo.
+3. In this dashboard's `.env`, set:
+   - `GITHUB_TOKEN` — a fine-grained PAT with **`Actions: read & write`** on that repo
+   - `GITHUB_OWNER` / `GITHUB_REPO` — pointing at that repo
+
+The dashboard's **force-deploy** button then calls the workflow via the GitHub
+API (`workflow_dispatch`). The workflow checks out the chosen branch, makes the
+empty commit as `github-actions[bot]`, and pushes — and Vercel deploys.
+
+```
+Dashboard "Force deploy"  ──GitHub API──▶  Actions workflow in your deploy repo
+   (no Vercel seat needed)                    │  empty commit as github-actions[bot]
+                                              │  git push origin HEAD:<branch>
+                                              ▼
+                                       Vercel sees the push  ──▶  builds & deploys
+```
+
+> If you don't need force-deploy, skip the `GITHUB_*` variables and the workflow
+> entirely — everything else still works.
+
 ## Tech stack
 
 - Nuxt 4 (Vue 3, Nitro server)
