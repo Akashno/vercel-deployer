@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-page: #ffffff;
+    --bg-card: #f9f9fb;
+    --bg-card-modal: #ffffff;
+    --bg-dropdown: #ffffff;
+    --bg-input: #ffffff;
+    --bg-button: #ffffff;
+    --bg-button-hover: #f4f4f5;
+    --bg-row-hover: #f9f9fb;
+    --border-primary: #e4e4e7;
+    --border-secondary: #f4f4f5;
+    --border-tertiary: #e4e4e7;
+    --border-focus: #a1a1aa;
+    --text-primary: #18181b;
+    --text-secondary: #71717a;
+    --text-tertiary: #a1a1aa;
+    --text-quaternary: #d4d4d8;
+
+    --color-blue: #0070f3;
+    --color-blue-hover: #005cc5;
+    --color-blue-text: #0070f3;
+    --color-blue-bg: rgba(0, 112, 243, 0.05);
+    --color-blue-border: rgba(0, 112, 243, 0.15);
+
+    --color-red: #e5484d;
+    --color-red-text: #e5484d;
+    --color-red-bg: rgba(229, 72, 77, 0.05);
+    --color-red-border: rgba(229, 72, 77, 0.15);
+
+    --color-orange-text: #d97706;
+    --color-orange-bg: rgba(255, 153, 10, 0.05);
+    --color-orange-border: rgba(255, 153, 10, 0.15);
+
+    --color-green-text: #16a34a;
+    --color-green-bg: rgba(0, 201, 80, 0.05);
+    --color-green-border: rgba(0, 201, 80, 0.15);
+  }
+
+  .dark {
+    --bg-page: #050505;
+    --bg-card: #0a0a0a;
+    --bg-card-modal: #0d0d0d;
+    --bg-dropdown: #111111;
+    --bg-input: #0a0a0a;
+    --bg-button: #111111;
+    --bg-button-hover: #161616;
+    --bg-row-hover: #080808;
+    --border-primary: #2a2a2a;
+    --border-secondary: #1a1a1a;
+    --border-tertiary: #222;
+    --border-focus: #555555;
+    --text-primary: #ededed;
+    --text-secondary: #aaa;
+    --text-tertiary: #666666;
+    --text-quaternary: #444444;
+
+    --color-blue: #0070f3;
+    --color-blue-hover: #005cc5;
+    --color-blue-text: #4d9ff0;
+    --color-blue-bg: rgba(0, 112, 243, 0.1);
+    --color-blue-border: rgba(0, 112, 243, 0.2);
+
+    --color-red: #e5484d;
+    --color-red-text: #e5484d;
+    --color-red-bg: rgba(229, 72, 77, 0.1);
+    --color-red-border: rgba(229, 72, 77, 0.2);
+
+    --color-orange-text: #ff990a;
+    --color-orange-bg: rgba(255, 153, 10, 0.1);
+    --color-orange-border: rgba(255, 153, 10, 0.2);
+
+    --color-green-text: #00c950;
+    --color-green-bg: rgba(0, 201, 80, 0.1);
+    --color-green-border: rgba(0, 201, 80, 0.2);
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    @apply bg-page text-text-primary antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* Custom scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-page;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-btn border border-border-primary rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-btn-hover;
+  }
+}

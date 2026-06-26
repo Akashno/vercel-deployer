@@ -25,156 +25,65 @@ async function submit() {
 </script>
 
 <template>
-  <div class="login-page">
-    <div class="login-card">
-      <h1 class="login-title">Deployments</h1>
-      <p class="login-sub">Sign in to continue</p>
+  <div class="relative flex items-center justify-center min-h-screen bg-page p-6 overflow-hidden">
+    <!-- Ambient background glows -->
+    <div class="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-blue-main/5 blur-[120px] pointer-events-none" />
+    <div class="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-80 h-80 rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
 
-      <form class="login-form" @submit.prevent="submit">
-        <div class="field">
-          <label class="label" for="username">Username</label>
+    <div class="w-full max-w-sm bg-card/60 backdrop-blur-xl border border-border-primary/80 rounded-2xl shadow-2xl p-8 transform transition-all hover:border-border-focus/60 duration-300">
+      <!-- Glow effect top bar -->
+      <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-main via-indigo-500 to-purple-500 opacity-60" />
+
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-text-primary tracking-tight">Deployments</h1>
+        <p class="mt-2 text-sm text-text-tertiary">Sign in to continue to your dashboard</p>
+      </div>
+
+      <form class="space-y-5" @submit.prevent="submit">
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-text-tertiary" for="username">Username</label>
           <input
             id="username"
             v-model="username"
-            class="input"
             type="text"
             autocomplete="username"
             placeholder="username"
             :disabled="loading"
             required
+            class="w-full bg-input border border-border-primary hover:border-border-focus focus:border-border-focus focus:ring-1 focus:ring-border-focus outline-none rounded-lg px-3 py-2 text-text-primary placeholder-text-quaternary text-sm transition-all disabled:opacity-50"
           />
         </div>
 
-        <div class="field">
-          <label class="label" for="password">Password</label>
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-text-tertiary" for="password">Password</label>
           <input
             id="password"
             v-model="password"
-            class="input"
             type="password"
             autocomplete="current-password"
             placeholder="••••••••"
             :disabled="loading"
             required
+            class="w-full bg-input border border-border-primary hover:border-border-focus focus:border-border-focus focus:ring-1 focus:ring-border-focus outline-none rounded-lg px-3 py-2 text-text-primary placeholder-text-quaternary text-sm transition-all disabled:opacity-50"
           />
         </div>
 
-        <div v-if="error" class="error-msg">{{ error }}</div>
+        <div v-if="error" class="bg-red-bg/10 border border-red-border/20 text-red-text text-xs rounded-lg p-3 leading-relaxed">
+          {{ error }}
+        </div>
 
-        <button class="submit-btn" type="submit" :disabled="loading">
-          <span v-if="loading" class="spinner" />
+        <button
+          class="w-full flex items-center justify-center px-4 py-2.5 bg-blue-main hover:bg-blue-main-hover disabled:opacity-60 disabled:hover:bg-blue-main text-sm font-semibold rounded-lg text-white transition-all duration-150 cursor-pointer shadow-lg shadow-blue-main/15 active:scale-[0.98]"
+          type="submit"
+          :disabled="loading"
+        >
+          <svg v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
           <span>{{ loading ? 'Signing in…' : 'Sign in' }}</span>
         </button>
       </form>
     </div>
   </div>
 </template>
-
-<style scoped>
-.login-page {
-  align-items: center;
-  background: #000;
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 1.5rem;
-}
-
-.login-card {
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 10px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 360px;
-}
-
-.login-title {
-  color: #fff;
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.25rem;
-}
-
-.login-sub {
-  color: #555;
-  font-size: 0.875rem;
-  margin-bottom: 1.75rem;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.label {
-  color: #777;
-  font-size: 0.8125rem;
-}
-
-.input {
-  background: #0a0a0a;
-  border: 1px solid #2a2a2a;
-  border-radius: 6px;
-  color: #ededed;
-  font-size: 0.9375rem;
-  outline: none;
-  padding: 0.5rem 0.75rem;
-  transition: border-color 0.15s;
-  width: 100%;
-}
-
-.input:focus { border-color: #555; }
-.input::placeholder { color: #333; }
-.input:disabled { opacity: 0.5; }
-
-.error-msg {
-  background: rgba(229, 72, 77, 0.08);
-  border: 1px solid rgba(229, 72, 77, 0.2);
-  border-radius: 6px;
-  color: #e5484d;
-  font-size: 0.8125rem;
-  padding: 0.5rem 0.75rem;
-}
-
-.submit-btn {
-  align-items: center;
-  background: #0070f3;
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  gap: 0.5rem;
-  justify-content: center;
-  margin-top: 0.25rem;
-  padding: 0.6rem 1rem;
-  transition: background 0.15s;
-  width: 100%;
-}
-
-.submit-btn:hover:not(:disabled) { background: #005cc5; }
-.submit-btn:disabled { opacity: 0.6; cursor: default; }
-
-.spinner {
-  animation: spin 0.7s linear infinite;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  flex-shrink: 0;
-  height: 14px;
-  width: 14px;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
