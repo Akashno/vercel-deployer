@@ -219,10 +219,7 @@ onMounted(() => {
         </div>
         <div class="flex gap-2 shrink-0">
           <a :href="`https://${data.url}`" target="_blank" rel="noopener" class="bg-blue-main border border-blue-main rounded-[6px] text-white text-[13px] px-3 py-[6.4px] no-underline transition-colors hover:bg-blue-main-hover hover:border-blue-main-hover">
-            Visit ↗
-          </a>
-          <a v-if="data.inspectorUrl" :href="data.inspectorUrl" target="_blank" rel="noopener" class="border border-border-primary rounded-[6px] text-text-secondary text-[13px] px-3 py-[6.4px] no-underline transition-colors hover:border-border-focus hover:text-text-primary hover:bg-btn">
-            Vercel Dashboard ↗
+            Preview URL ↗
           </a>
           <button
             v-if="CANCELLABLE.has(data.state?.toUpperCase())"
@@ -238,8 +235,8 @@ onMounted(() => {
       <!-- Meta Strip -->
       <div class="bg-card border border-border-secondary rounded-[8px] px-4 py-[14px] mb-6 flex flex-col gap-2">
         <!-- Row 1: URL -->
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="text-text-quaternary text-[11px] font-medium tracking-[0.05em] uppercase w-20 shrink-0">Preview URL</span>
+        <div class="flex items-center gap-4 flex-wrap">
+          <span class="whitespace-nowrap text-text-quaternary text-[11px] font-medium tracking-[0.05em] uppercase w-20 shrink-0">Preview URL</span>
           <a :href="`https://${data.url}`" target="_blank" rel="noopener" class="text-text-primary font-mono text-sm no-underline hover:underline hover:text-text-primary">{{ data.url }}</a>
           <button
             @click="copy(data.url, 'url')"
@@ -251,7 +248,7 @@ onMounted(() => {
         </div>
 
         <!-- Row 2: Branch -->
-        <div v-if="data.branch" class="flex items-center gap-1.5 flex-wrap">
+        <div v-if="data.branch" class="flex items-center gap-4 flex-wrap">
           <span class="text-text-quaternary text-[11px] font-medium tracking-[0.05em] uppercase w-20 shrink-0">Branch</span>
           <a v-if="data.repoUrl" :href="`${data.repoUrl}/tree/${data.branch}`" target="_blank" rel="noopener" class="text-text-secondary font-mono text-[13px] no-underline hover:underline hover:text-text-primary">{{ data.branch }}</a>
           <span v-else class="text-text-secondary font-mono text-[13px]">{{ data.branch }}</span>
@@ -265,7 +262,7 @@ onMounted(() => {
         </div>
 
         <!-- Row 3: Commit -->
-        <div v-if="data.commitSha" class="flex items-center gap-1.5 flex-wrap">
+        <div v-if="data.commitSha" class="flex items-center gap-4 flex-wrap">
           <span class="text-text-quaternary text-[11px] font-medium tracking-[0.05em] uppercase w-20 shrink-0">Commit ID</span>
           <a v-if="data.repoUrl" :href="`${data.repoUrl}/commit/${data.commitSha}`" target="_blank" rel="noopener" class="bg-btn border border-border-tertiary rounded-[3px] text-text-tertiary font-mono text-xs px-1.5 py-[0.8px] no-underline hover:text-text-secondary">{{ data.commitSha.slice(0, 7) }}</a>
           <code v-else class="bg-btn border border-border-tertiary rounded-[3px] text-text-tertiary font-mono text-xs px-1.5 py-[0.8px]">{{ data.commitSha.slice(0, 7) }}</code>
@@ -281,7 +278,7 @@ onMounted(() => {
         </div>
 
         <!-- Row 4: Author -->
-        <div v-if="data.commitAuthor || formatTs(data.createdAt)" class="flex items-center gap-1.5 flex-wrap">
+        <div v-if="data.commitAuthor || formatTs(data.createdAt)" class="flex items-center gap-4 flex-wrap">
           <span class="text-text-quaternary text-[11px] font-medium tracking-[0.05em] uppercase w-20 shrink-0">Author</span>
           <span class="text-text-quaternary text-xs">
             {{ [data.commitAuthor, formatTs(data.createdAt), formatDuration(data.buildDurationMs) ? `built in ${formatDuration(data.buildDurationMs)}` : ''].filter(Boolean).join(' · ') }}
@@ -373,14 +370,14 @@ onMounted(() => {
               </div>
               <div v-if="jiraIssue.type || jiraIssue.priority" class="flex items-center gap-3 min-h-[25.6px] border-t border-border-secondary mt-1.5 pt-1.5">
                 <span class="text-text-quaternary shrink-0 text-[11px] font-medium tracking-[0.04em] uppercase w-16">Type</span>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-4">
                   <span v-if="jiraIssue.type" class="bg-btn border border-border-tertiary rounded-[3px] text-text-secondary text-[11px] font-medium px-1.5 py-[0.8px]">{{ jiraIssue.type }}</span>
                   <span v-if="jiraIssue.priority" class="bg-btn border border-border-tertiary rounded-[3px] text-text-secondary text-[11px] font-medium px-1.5 py-[0.8px]">{{ jiraIssue.priority }}</span>
                 </div>
               </div>
               <div v-if="jiraIssue.assignee" class="flex items-center gap-3 min-h-[25.6px] border-t border-border-secondary mt-1.5 pt-1.5">
                 <span class="text-text-quaternary shrink-0 text-[11px] font-medium tracking-[0.04em] uppercase w-16">Assignee</span>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-4">
                   <img v-if="jiraIssue.assignee.avatar" :src="jiraIssue.assignee.avatar" class="rounded-full h-4 w-4" />
                   <span class="text-text-secondary text-[13px] leading-relaxed">{{ jiraIssue.assignee.name }}</span>
                 </div>

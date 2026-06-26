@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const collapse = query.collapse === 'true' || query.collapse === '1'
 
   const data = await vercelApi<VercelResponse>('/deployments', {
-    query: { limit: '50' },
+    query: { limit: '75' },
   })
 
   const mapped = data.deployments.map((d) => {

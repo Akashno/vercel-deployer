@@ -345,7 +345,6 @@ function isFdBusy(uid: string): boolean {
     <header class="flex items-center justify-between flex-wrap gap-4 mb-4">
       <div class="flex items-center gap-2.5">
         <div class="flex items-center gap-2">
-          <img src="https://console.docoitest.com/favicon.ico" class="w-5 h-5 shrink-0" />
           <span class="text-[18px] font-semibold tracking-[-0.02em] text-text-primary">{{ project?.name ?? '—' }}</span>
         </div>
         <span v-if="data" class="bg-border-secondary border border-border-primary rounded-full text-text-secondary text-xs font-medium px-2 py-[1px]">
@@ -541,16 +540,16 @@ function isFdBusy(uid: string): boolean {
             <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-[13px] align-middle">
               <div class="flex items-center gap-1.5">
                 <img
-                  v-if="d.commitAuthor && !avatarErrors[d.uid]"
-                  :src="`https://github.com/${d.commitAuthor}.png?size=32`"
+                  v-if="d.commitAuthor && !avatarErrors[d.uid] && !d.commitAuthor.includes('bot')"
+                  :src="`https://github.com/${d.commitAuthor.replace(/\[bot\]$/, '')}.png?size=32`"
                   :alt="d.commitAuthor"
                   @error="avatarErrors[d.uid] = true"
                   class="rounded-full h-4 w-4 ring-1 ring-border-primary"
                 />
                 <div v-else-if="d.commitAuthor" class="w-4 h-4 rounded-full bg-card flex items-center justify-center text-text-tertiary">
-                  <Icon name="lucide:bot" class="w-2.5 h-2.5" />
+                  <Icon name="ri:github-fill" class="size-12" />
                 </div>
-                <span class="text-text-secondary text-sm">{{ d.commitAuthor || '—' }}</span>
+                <span class="text-text-secondary text-sm whitespace-nowrap" >{{ d.commitAuthor || '—' }}</span>
               </div>
             </td>
 
@@ -602,7 +601,7 @@ function isFdBusy(uid: string): boolean {
                     <!-- Dropdown panel -->
                     <div
                       v-if="openDropdown === d.uid"
-                      class="absolute right-0 bg-card border border-border-tertiary rounded-[6px] shadow-[0_4px_12px_rgba(0,0,0,0.5)] flex flex-col p-1 z-30 w-[130px] space-y-0.5"
+                      class="absolute  right-0 bg-card border border-border-tertiary rounded-[6px] shadow-[0_4px_12px_rgba(0,0,0,0.5)] flex flex-col p-1 z-30 w-[130px] space-y-0.5"
                       :class="[ idx >= filteredDeployments.length - 2 && idx > 0 ? 'bottom-full mb-1' : 'top-full mt-1' ]"
                     >
                       <!-- GitHub PR link -->
@@ -615,7 +614,7 @@ function isFdBusy(uid: string): boolean {
                         :title="d.prUrl ? `View PR #${d.prId}` : 'No PR linked'"
                         @click="!d.prUrl ? $event.preventDefault() : openDropdown = null"
                       >
-                        <Icon name="lucide:git-pull-request" class="h-3.5 w-3.5" />
+                        <Icon name="ri:github-fill" class="h-3.5 w-3.5" />
                         <span>{{ d.prUrl ? `PR #${d.prId}` : 'No PR linked' }}</span>
                       </a>
 
