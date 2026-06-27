@@ -637,7 +637,7 @@ function isFdBusy(uid: string): boolean {
                     :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
                     :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
                     @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && forceDeploy($event, d.uid, d.branch!)"
-                    class=" inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[13px] gap-1.5 px-3 py-[3px] font-medium transition-colors hover:not-disabled:bg-btn-hover hover:not-disabled:border-border-focus hover:not-disabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
+                    class="inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[13px] gap-1.5 px-3 py-[3px] font-medium transition-colors hover:enabled:bg-btn-hover hover:enabled:border-border-focus hover:enabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
                   >
                     <Icon name="lucide:rocket" class="h-3.5 w-3.5" />
                     <span>Deploy</span>
