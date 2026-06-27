@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
   const sprint = (f.customfield_10020 as any[])?.[0]?.name ?? null
   const storyPoints = (f.customfield_10016 ?? f.customfield_10028 ?? null) as number | null
 
+  const config = useRuntimeConfig()
   return {
     key: data.key as string,
     summary: (f.summary ?? '') as string,
@@ -37,6 +38,6 @@ export default defineEventHandler(async (event) => {
     labels: (f.labels ?? []) as string[],
     sprint,
     storyPoints,
-    url: `https://${process.env.JIRA_ORG}.atlassian.net/browse/${data.key}`,
+    url: `https://${config.jiraOrg}.atlassian.net/browse/${data.key}`,
   }
 })

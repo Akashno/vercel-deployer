@@ -63,9 +63,10 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  const config = useRuntimeConfig()
   return {
     ok: true,
     sha: newCommitSha,
-    url: `https://github.com/${process.env.GITHUB_OWNER}/${process.env.GITHUB_REPO}/commit/${newCommitSha}`,
+    url: `https://github.com/${config.githubOwner}/${config.githubRepo}/commit/${newCommitSha}`,
   }
 })

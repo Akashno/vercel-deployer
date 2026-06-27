@@ -1,9 +1,10 @@
 export default defineEventHandler(async (event) => {
   const { owner, repo, pr, sha } = getQuery(event)
 
-  const token = process.env.GITHUB_TOKEN
+  const config = useRuntimeConfig()
+  const token = config.githubToken
   if (!token || !owner || !repo || !pr) {
-    throw createError({ statusCode: 400, message: 'Missing owner, repo, pr or GITHUB_TOKEN' })
+    throw createError({ statusCode: 400, message: 'Missing owner, repo, pr or GITHUB_TOKEN configuration' })
   }
 
   const headers = {

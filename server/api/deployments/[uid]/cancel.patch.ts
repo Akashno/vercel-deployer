@@ -1,10 +1,11 @@
 export default defineEventHandler(async (event) => {
   const uid = getRouterParam(event, 'uid')
-  const token = process.env.PROJECT_TOKEN
-  const teamId = process.env.TEAM_ID
+  const config = useRuntimeConfig()
+  const token = config.projectToken
+  const teamId = config.teamId
 
   if (!token) {
-    throw createError({ statusCode: 500, message: 'Missing PROJECT_TOKEN env var' })
+    throw createError({ statusCode: 500, message: 'Missing PROJECT_TOKEN configuration' })
   }
 
   const url = new URL(`https://api.vercel.com/v12/deployments/${uid}/cancel`)

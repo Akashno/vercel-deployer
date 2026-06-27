@@ -30,8 +30,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Branch name is required' })
   }
 
-  const owner = process.env.GITHUB_OWNER
-  const repo = process.env.GITHUB_REPO
+  const config = useRuntimeConfig()
+  const owner = config.githubOwner
+  const repo = config.githubRepo
 
   // Fetch recent deployments for the project using the shared vercelApi client
   // projectId and teamId are automatically appended by the client's interceptor!

@@ -16,9 +16,10 @@ export async function verifyAuthCookie(event: Parameters<typeof getCookie>[0]): 
   const token = getCookie(event, AUTH_COOKIE)
   if (!token) return false
 
-  const username = process.env.AUTH_USERNAME ?? ''
-  const password = process.env.AUTH_PASSWORD ?? ''
-  const secret = process.env.AUTH_SECRET ?? ''
+  const config = useRuntimeConfig()
+  const username = config.authUsername
+  const password = config.authPassword
+  const secret = config.authSecret
 
   if (!username || !password || !secret) return false
 

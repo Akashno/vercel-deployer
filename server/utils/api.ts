@@ -4,9 +4,10 @@ import { ofetch } from 'ofetch'
 // GitHub API Client Configuration
 export const githubApi = ofetch.create({
   onRequest({ options }) {
-    const token = process.env.GITHUB_TOKEN
-    const owner = process.env.GITHUB_OWNER
-    const repo = process.env.GITHUB_REPO
+    const config = useRuntimeConfig()
+    const token = config.githubToken
+    const owner = config.githubOwner
+    const repo = config.githubRepo
 
     if (!token || !owner || !repo) {
       throw createError({
@@ -35,9 +36,10 @@ export const githubApi = ofetch.create({
 // Vercel API Client Configuration
 export const vercelApi = ofetch.create({
   onRequest({ options }) {
-    const token = process.env.PROJECT_TOKEN
-    const projectId = process.env.PROJECT_ID
-    const teamId = process.env.TEAM_ID
+    const config = useRuntimeConfig()
+    const token = config.projectToken
+    const projectId = config.projectId
+    const teamId = config.teamId
 
     if (!token || !projectId) {
       throw createError({
@@ -74,9 +76,10 @@ export const vercelApi = ofetch.create({
 // Jira API Client Configuration
 export const jiraApi = ofetch.create({
   onRequest({ options }) {
-    const org = process.env.JIRA_ORG
-    const email = process.env.JIRA_EMAIL
-    const token = process.env.JIRA_API_TOKEN
+    const config = useRuntimeConfig()
+    const org = config.jiraOrg
+    const email = config.jiraEmail
+    const token = config.jiraApiToken
 
     if (!org || !email || !token) {
       throw createError({
@@ -85,7 +88,8 @@ export const jiraApi = ofetch.create({
       })
     }
 
-    const auth = Buffer.from(`${email}:${token}`).toString('base64')
+    // Edge-compatible base64 encoding (replaces Node.js-only Buffer.from)
+    const auth = btoa(`${email}:${token}`)
 
     options.baseURL = `https://${org}.atlassian.net/rest/api/3`
     options.headers = {
