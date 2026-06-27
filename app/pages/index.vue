@@ -58,6 +58,7 @@ const { data: resData, pending, error, refresh } = await useFetch<DeploymentsRes
 const data = computed(() => resData.value?.deployments ?? [])
 const project = computed(() => ({ name: resData.value?.projectName ?? '—' }))
 
+const inspectingUid = ref<string | null>(null)
 const openDropdown = ref<string | null>(null)
 const cancelling = ref<string | null>(null)
 const CANCELLABLE = new Set(['BUILDING', 'QUEUED', 'INITIALIZING'])
@@ -82,6 +83,9 @@ const searchInput = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark')
+  if (route.query.inspect) {
+    inspectingUid.value = route.query.inspect as string
+  }
   const onKeydown = (e: KeyboardEvent) => {
     if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
@@ -108,10 +112,11 @@ function syncUrl() {
   if (filterStatus.value) query.status = filterStatus.value
   if (filterAuthor.value) query.author = filterAuthor.value
   if (!collapsed.value) query.collapse = '0'
+  if (inspectingUid.value) query.inspect = inspectingUid.value
   router.replace({ query })
 }
 
-watch([filterStatus, filterAuthor, collapsed], syncUrl)
+watch([filterStatus, filterAuthor, collapsed, inspectingUid], syncUrl)
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 watch(search, () => {
@@ -494,8 +499,8 @@ function isFdBusy(uid: string): boolean {
             :class="[
               d._pending ? 'cursor-default bg-orange-bg/20 hover:bg-orange-bg/30' : 'hover:bg-row-hover'
             ]"
-            @click="!d._pending && navigateTo(`/deployments/${d.uid}`)"
-            @keydown.enter="!d._pending && navigateTo(`/deployments/${d.uid}`)"
+            @click="!d._pending && (inspectingUid = d.uid)"
+            @keydown.enter="!d._pending && (inspectingUid = d.uid)"
             :tabindex="d._pending ? -1 : 0"
           >
             <!-- Branch / Commit Info -->
@@ -616,14 +621,13 @@ function isFdBusy(uid: string): boolean {
                       :class="[ idx >= filteredDeployments.length - 2 && idx > 0 ? 'bottom-full mb-1' : 'top-full mt-1' ]"
                     >
                       <!-- View Details link -->
-                      <NuxtLink
-                        :to="`/deployments/${d.uid}`"
-                        class="flex items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] no-underline hover:bg-btn-hover hover:text-text-primary transition-colors"
-                        @click="openDropdown = null"
+                      <button
+                        class="flex w-full items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] border-0 bg-transparent text-left cursor-pointer hover:bg-btn-hover hover:text-text-primary transition-colors"
+                        @click="openDropdown = null; inspectingUid = d.uid"
                       >
                         <Icon name="lucide:eye" class="h-3.5 w-3.5 text-zinc-500" />
                         <span>View Details</span>
-                      </NuxtLink>
+                      </button>
                       <!-- GitHub PR link -->
                       <a
                         :href="d.prUrl ?? undefined"
@@ -673,6 +677,11 @@ function isFdBusy(uid: string): boolean {
       :branch="confirmPending?.branch ?? ''"
       @update:model-value="val => { if (!val) confirmPending = null }"
       @confirm="confirmForceDeploy"
+    />
+
+    <DeploymentDetailDrawer
+      :uid="inspectingUid"
+      @close="inspectingUid = null"
     />
   </div>
 </template>
