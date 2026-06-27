@@ -732,7 +732,7 @@
       width: 440px;
       background-color: var(--bg-secondary);
       border-left: 1px solid var(--border-primary);
-      box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
       transform: translateX(100%);
@@ -773,6 +773,7 @@
     .drawer-close:hover {
       color: #fff;
     }
+
     /* Modal Form for Branch Deploy */
     .modal-overlay {
       position: absolute;
@@ -1334,7 +1335,7 @@
       <span>🎉</span> Free &amp; Self-Hosted Dashboard for Teams
     </div>
     <h1 class="hero-title">
-      Share Vercel Deployer with your entire team — <span>No Paid Seats</span>
+      Share Vercel Deployments with your entire team — <span>No Paid Seats</span>
     </h1>
     <p class="hero-subtitle">
       Give project managers, QA engineers, designers, and clients full control. Let them watch builds, browse branches,
@@ -1408,7 +1409,7 @@
             </thead>
             <tbody id="sim-table-body">
               <!-- Rendered via JS -->
-             </tbody>
+            </tbody>
           </table>
         </div>
 
@@ -1418,75 +1419,105 @@
             <span class="drawer-title" id="detail-drawer-title">Inspect Deployment</span>
             <button class="drawer-close" onclick="closeDetailDrawer()">✕</button>
           </div>
-          
-          <div class="drawer-body" style="padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem;">
+
+          <div class="drawer-body"
+            style="padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem;">
             <!-- Header Info -->
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span id="detail-status-badge" class="status-badge"></span>
-                <span id="detail-branch-title" style="font-weight: 600; color: #fff; font-size: 0.95rem; font-family: var(--font-mono);"></span>
+                <span id="detail-branch-title"
+                  style="font-weight: 600; color: #fff; font-size: 0.95rem; font-family: var(--font-mono);"></span>
               </div>
-              <a id="detail-preview-btn" href="#" target="_blank" rel="noopener" class="sim-btn-deploy" style="background-color: var(--accent-blue); border-color: var(--accent-blue); color: #fff; text-decoration: none; padding: 0.35rem 0.65rem; border-radius: 4px;">
+              <a id="detail-preview-btn" href="#" target="_blank" rel="noopener" class="sim-btn-deploy"
+                style="background-color: var(--accent-blue); border-color: var(--accent-blue); color: #fff; text-decoration: none; padding: 0.35rem 0.65rem; border-radius: 4px;">
                 Preview URL ↗
               </a>
             </div>
 
             <!-- Meta Strip -->
-            <div style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.8rem;">
+            <div
+              style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.8rem;">
               <div class="meta-row" style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="color: var(--text-tertiary);">Preview URL</span>
-                <a id="detail-url-link" href="#" target="_blank" rel="noopener" style="font-family: var(--font-mono); color: #fff; text-decoration: none; word-break: break-all; max-width: 250px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></a>
+                <a id="detail-url-link" href="#" target="_blank" rel="noopener"
+                  style="font-family: var(--font-mono); color: #fff; text-decoration: none; word-break: break-all; max-width: 250px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></a>
               </div>
-              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+              <div class="meta-row"
+                style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                 <span style="color: var(--text-tertiary);">Commit ID</span>
-                <span id="detail-commit-sha" style="font-family: var(--font-mono); color: var(--text-secondary);"></span>
+                <span id="detail-commit-sha"
+                  style="font-family: var(--font-mono); color: var(--text-secondary);"></span>
               </div>
-              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+              <div class="meta-row"
+                style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                 <span style="color: var(--text-tertiary);">Author</span>
                 <span id="detail-commit-author" style="color: var(--text-secondary);"></span>
               </div>
-              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+              <div class="meta-row"
+                style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                 <span style="color: var(--text-tertiary);">Commit Msg</span>
-                <span id="detail-commit-msg" style="color: var(--text-secondary); text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+                <span id="detail-commit-msg"
+                  style="color: var(--text-secondary); text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
               </div>
             </div>
 
             <!-- Integrations Section -->
             <div id="detail-integrations-container" style="display: flex; flex-direction: column; gap: 1rem;">
               <!-- GitHub Card -->
-              <div id="detail-github-card" style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
+              <div id="detail-github-card"
+                style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="color: var(--text-tertiary);"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
-                  <span style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">GitHub Pull Request</span>
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"
+                    style="color: var(--text-tertiary);">
+                    <path
+                      d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8" />
+                  </svg>
+                  <span
+                    style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">GitHub
+                    Pull Request</span>
                 </div>
                 <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="color: var(--text-tertiary); width: 60px;">Status</span>
                     <span id="detail-pr-status" class="status-badge" style="text-transform: uppercase;"></span>
                   </div>
-                  <div style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                  <div
+                    style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                     <span style="color: var(--text-tertiary); width: 60px; shrink-0;">PR</span>
-                    <a id="detail-pr-link" href="#" target="_blank" rel="noopener" style="color: #60a5fa; text-decoration: none; hover:underline;"></a>
+                    <a id="detail-pr-link" href="#" target="_blank" rel="noopener"
+                      style="color: #60a5fa; text-decoration: none; hover:underline;"></a>
                   </div>
                 </div>
               </div>
 
               <!-- Jira Card -->
-              <div id="detail-jira-card" style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
+              <div id="detail-jira-card"
+                style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="color: var(--text-tertiary);"><path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM9 12.5H4v-1h5v1zm3-3H4v-1h8v1zm0-3H4v-1h8v1z"/></svg>
-                  <span style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">Jira Issue</span>
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"
+                    style="color: var(--text-tertiary);">
+                    <path
+                      d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM9 12.5H4v-1h5v1zm3-3H4v-1h8v1zm0-3H4v-1h8v1z" />
+                  </svg>
+                  <span
+                    style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">Jira
+                    Issue</span>
                 </div>
                 <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="color: var(--text-tertiary); width: 60px;">Status</span>
                     <span id="detail-jira-status" class="status-badge" style="text-transform: uppercase;"></span>
                   </div>
-                  <div style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                  <div
+                    style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                     <span style="color: var(--text-tertiary); width: 60px; shrink-0;">Issue</span>
                     <span style="color: var(--text-secondary);">
-                      <a id="detail-jira-link" href="#" target="_blank" rel="noopener" style="color: #60a5fa; font-family: var(--font-mono); font-weight: 600; text-decoration: none; margin-right: 0.35rem;"></a>
-                      <span id="detail-jira-summary" style="word-break: break-all; color: var(--text-secondary);"></span>
+                      <a id="detail-jira-link" href="#" target="_blank" rel="noopener"
+                        style="color: #60a5fa; font-family: var(--font-mono); font-weight: 600; text-decoration: none; margin-right: 0.35rem;"></a>
+                      <span id="detail-jira-summary"
+                        style="word-break: break-all; color: var(--text-secondary);"></span>
                     </span>
                   </div>
                 </div>
@@ -1566,7 +1597,9 @@
             </svg>
           </div>
           <h3 class="feature-title">PR &amp; Jira Integrations</h3>
-          <p class="feature-desc">Automatically parses branch names (matching your Jira issue key like <code>PROJ-123</code>) to surface links to active GitHub Pull Requests and Jira tickets right in the deployment listing.</p>
+          <p class="feature-desc">Automatically parses branch names (matching your Jira issue key like
+            <code>PROJ-123</code>) to surface links to active GitHub Pull Requests and Jira tickets right in the
+            deployment listing.</p>
         </div>
         <!-- Feature 4 -->
         <div class="feature-card">
@@ -1751,7 +1784,8 @@
             <div class="code-line"><span style="color:#60a5fa">PROJECT_ID</span>=<span
                 style="color:#a855f7">"prj_projectIdHere"</span></div>
             <div class="code-line"><span style="color:#60a5fa">TEAM_ID</span>=<span style="color:#a855f7">""</span>
-              <span style="color:#71717a"># Required only if project is in a team</span></div>
+              <span style="color:#71717a"># Required only if project is in a team</span>
+            </div>
             <div class="code-line"></div>
             <div class="code-line"><span style="color:#71717a"># Dashboard Authentication</span></div>
             <div class="code-line"><span style="color:#60a5fa">AUTH_USERNAME</span>=<span
@@ -2034,7 +2068,7 @@
 
       // Populate elements
       document.getElementById('detail-drawer-title').textContent = `Inspect: ${d.branch}`;
-      
+
       // Status Badge
       const statusBadge = document.getElementById('detail-status-badge');
       statusBadge.textContent = d.state;
@@ -2047,7 +2081,7 @@
       else if (d.state === 'ERROR') statusBadge.classList.add('status-error-badge');
 
       document.getElementById('detail-branch-title').textContent = d.branch;
-      
+
       // Preview URL links
       const previewUrl = `vercel-deployments-${d.commitSha ? d.commitSha.slice(0, 7) : 'branch'}.vercel.app`;
       const previewBtn = document.getElementById('detail-preview-btn');
@@ -2080,7 +2114,7 @@
         } else {
           prStatusBadge.classList.add('status-building-badge');
         }
-        
+
         const prLink = document.getElementById('detail-pr-link');
         prLink.href = `https://github.com/Akashno/vercel-deployments/pull/${d.prId}`;
         prLink.textContent = `#${d.prId} feat: add integrations support`;
@@ -2104,7 +2138,7 @@
         const jiraLink = document.getElementById('detail-jira-link');
         jiraLink.href = `https://akashno.atlassian.net/browse/${d.jiraId}`;
         jiraLink.textContent = d.jiraId;
-        
+
         document.getElementById('detail-jira-summary').textContent = 'Implement automated branch tracking & deployment triggers';
       } else {
         jiraCard.style.display = 'none';
