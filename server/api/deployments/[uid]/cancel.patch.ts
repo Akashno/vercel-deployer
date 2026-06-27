@@ -1,5 +1,8 @@
+import { validateUid } from '~~/server/utils/validation'
+
 export default defineEventHandler(async (event) => {
   const uid = getRouterParam(event, 'uid')
+  validateUid(uid)
   const config = useRuntimeConfig()
   const token = config.projectToken
   const teamId = config.teamId

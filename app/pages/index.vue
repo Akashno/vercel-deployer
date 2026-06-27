@@ -34,17 +34,9 @@ const router = useRouter()
 
 const { public: { jiraOrg } } = useRuntimeConfig()
 
-const JIRA_TICKET_RE = /([A-Z]+-\d+)/
-
-function getJiraTicket(branch: string | null): string | null {
-  if (!branch || !jiraOrg) return null
-  const m = branch.match(JIRA_TICKET_RE)
-  return m ? m[1] : null
-}
-
 function getJiraUrl(branch: string | null): string | null {
-  const ticket = getJiraTicket(branch)
-  return ticket ? `https://${jiraOrg}.atlassian.net/browse/${ticket}` : null
+  const ticket = parseJiraKey(branch)
+  return ticket && jiraOrg ? `https://${jiraOrg}.atlassian.net/browse/${ticket}` : null
 }
 
 const collapsed = ref((route.query.collapse as string) !== '0')

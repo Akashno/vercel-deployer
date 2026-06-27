@@ -1,5 +1,13 @@
+import { validateOwnerRepo, validateSha } from '~~/server/utils/validation'
+
 export default defineEventHandler(async (event) => {
   const { owner, repo, pr, sha } = getQuery(event)
+
+  validateOwnerRepo(owner, repo)
+  validateSha(sha)
+  if (pr && !/^\d+$/.test(pr as string)) {
+    throw createError({ statusCode: 400, message: 'Invalid pull request number format' })
+  }
 
   const config = useRuntimeConfig()
   const token = config.githubToken

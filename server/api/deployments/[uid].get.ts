@@ -1,3 +1,5 @@
+import { validateUid } from '~~/server/utils/validation'
+
 interface VercelDeploymentDetail {
   uid: string
   id: string
@@ -18,6 +20,8 @@ interface VercelDeploymentDetail {
 
 export default defineEventHandler(async (event) => {
   const uid = getRouterParam(event, 'uid')
+
+  validateUid(uid)
   const config = useRuntimeConfig()
   const token = config.projectToken
   const teamId = config.teamId

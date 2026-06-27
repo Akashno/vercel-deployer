@@ -1570,6 +1570,18 @@
                     <a id="detail-pr-link" href="#" target="_blank" rel="noopener"
                       style="color: #60a5fa; text-decoration: none; hover:underline;"></a>
                   </div>
+                  <!-- Reviews -->
+                  <div id="detail-pr-reviews-row"
+                    style="display: none; align-items: center; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                    <span style="color: var(--text-tertiary); width: 60px;">Reviews</span>
+                    <span id="detail-pr-reviews" style="font-weight: 500;"></span>
+                  </div>
+                  <!-- Labels -->
+                  <div id="detail-pr-labels-row"
+                    style="display: none; align-items: center; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                    <span style="color: var(--text-tertiary); width: 60px;">Labels</span>
+                    <div id="detail-pr-labels" style="display: flex; flex-wrap: wrap; gap: 0.25rem;"></div>
+                  </div>
                 </div>
               </div>
 
@@ -1973,6 +1985,8 @@
         target: null,
         prId: '42',
         jiraId: 'PROJ-101',
+        prReviews: { approved: 2, changesRequested: 0 },
+        prLabels: [{ name: 'enhancement', color: '3b82f6' }, { name: 'approved', color: '10b981' }],
         logs: [
           { time: '13:30:15', text: 'Deployment BLOCKED.', type: 'error' },
           { time: '13:30:16', text: 'Error: Only paid Vercel team members can deploy branches on this project.', type: 'error' },
@@ -1990,6 +2004,8 @@
         target: null,
         prId: '41',
         jiraId: 'PROJ-94',
+        prReviews: { approved: 0, changesRequested: 1 },
+        prLabels: [{ name: 'bug', color: 'ef4444' }, { name: 'wip', color: 'f59e0b' }],
         logs: [
           { time: '13:04:12', text: 'Deployment BLOCKED.', type: 'error' },
           { time: '13:04:13', text: 'Error: Only paid Vercel team members can deploy branches on this project.', type: 'error' }
@@ -2186,6 +2202,9 @@
 
       // GitHub Integration Details
       const githubCard = document.getElementById('detail-github-card');
+      const prReviewsRow = document.getElementById('detail-pr-reviews-row');
+      const prLabelsRow = document.getElementById('detail-pr-labels-row');
+
       if (d.prId) {
         githubCard.style.display = 'block';
         const prStatusBadge = document.getElementById('detail-pr-status');
@@ -2204,6 +2223,45 @@
         prLink.title = `Navigates to GitHub Pull Request #${d.prId}`;
         prLink.onclick = (e) => { e.preventDefault(); };
         prLink.textContent = `#${d.prId} feat: add integrations support`;
+
+        // Render mock Reviews in simulator
+        if (d.prReviews) {
+          prReviewsRow.style.display = 'flex';
+          const reviewsText = document.getElementById('detail-pr-reviews');
+          if (d.prReviews.approved > 0 && d.prReviews.changesRequested === 0) {
+            reviewsText.style.color = '#34d399'; // Emerald-400
+            reviewsText.textContent = `Approved (${d.prReviews.approved})`;
+          } else if (d.prReviews.changesRequested > 0) {
+            reviewsText.style.color = '#f87171'; // Rose-400
+            reviewsText.textContent = `Changes Requested (${d.prReviews.changesRequested})`;
+          } else {
+            reviewsText.style.color = '#a1a1aa'; // Zinc-400
+            reviewsText.textContent = 'No reviews';
+          }
+        } else {
+          prReviewsRow.style.display = 'none';
+        }
+
+        // Render mock Labels in simulator
+        if (d.prLabels && d.prLabels.length > 0) {
+          prLabelsRow.style.display = 'flex';
+          const labelsContainer = document.getElementById('detail-pr-labels');
+          labelsContainer.innerHTML = '';
+          d.prLabels.forEach(l => {
+            const badge = document.createElement('span');
+            badge.style.fontSize = '9px';
+            badge.style.fontWeight = '600';
+            badge.style.padding = '1px 5px';
+            badge.style.borderRadius = '3px';
+            badge.style.border = `1px solid #${l.color}35`;
+            badge.style.backgroundColor = `#${l.color}15`;
+            badge.style.color = `#${l.color}`;
+            badge.textContent = l.name;
+            labelsContainer.appendChild(badge);
+          });
+        } else {
+          prLabelsRow.style.display = 'none';
+        }
       } else {
         githubCard.style.display = 'none';
       }

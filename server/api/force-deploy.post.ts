@@ -1,5 +1,6 @@
 import { defineEventHandler, readBody, createError } from 'h3'
 import { githubApi } from '~~/server/utils/api'
+import { validateBranch } from '~~/server/utils/validation'
 
 interface GithubRefResponse {
   ref: string
@@ -23,9 +24,7 @@ interface GithubCommitResponse {
 
 export default defineEventHandler(async (event) => {
   const { branch } = await readBody<{ branch: string }>(event)
-  if (!branch?.trim()) {
-    throw createError({ statusCode: 400, message: 'Branch name is required' })
-  }
+  validateBranch(branch)
 
   // 1. Get the latest commit SHA of the branch
   const refData = await githubApi<GithubRefResponse>(`/git/ref/heads/${branch}`)
