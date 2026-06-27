@@ -4,6 +4,8 @@ A self-hosted dashboard for viewing and managing [Vercel](https://vercel.com)
 deployments — without giving everyone a paid Vercel seat. Built with
 [Nuxt 4](https://nuxt.com).
 
+🚀 **[View Live Interactive Demo](https://akashno.github.io/vercel-deployer/)**
+
 This dashboard is particularly useful for project management environments where **Vercel**, **Jira**, and **GitHub** are used together.
 
 Connect it to a Vercel project with an API token, protect it behind simple
