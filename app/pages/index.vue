@@ -604,6 +604,15 @@ function isFdBusy(uid: string): boolean {
                       class="absolute  right-0 bg-card border border-border-tertiary rounded-[6px] shadow-[0_4px_12px_rgba(0,0,0,0.5)] flex flex-col p-1 z-30 w-[130px] space-y-0.5"
                       :class="[ idx >= filteredDeployments.length - 2 && idx > 0 ? 'bottom-full mb-1' : 'top-full mt-1' ]"
                     >
+                      <!-- View Details link -->
+                      <NuxtLink
+                        :to="`/deployments/${d.uid}`"
+                        class="flex items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] no-underline hover:bg-btn-hover hover:text-text-primary transition-colors"
+                        @click="openDropdown = null"
+                      >
+                        <Icon name="lucide:eye" class="h-3.5 w-3.5 text-zinc-500" />
+                        <span>View Details</span>
+                      </NuxtLink>
                       <!-- GitHub PR link -->
                       <a
                         :href="d.prUrl ?? undefined"
