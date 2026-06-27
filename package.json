@@ -1,7 +1,7 @@
 {
   "name": "vercel-deployments",
   "version": "0.1.0",
-  "description": "Self-hosted dashboard for viewing and managing Vercel deployments without paid seats, with GitHub PR and Jira context.",
+  "description": "Self-hosted dashboard for viewing and managing Vercel Deployer without paid seats, with GitHub PR and Jira context.",
   "license": "MIT",
   "type": "module",
   "repository": {

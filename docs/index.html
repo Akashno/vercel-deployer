@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vercel Deployments Viewer — Self-Hosted Vercel Dashboard</title>
-  <meta name="description" content="A self-hosted dashboard for viewing and managing Vercel deployments, inspecting build logs, and triggering force-rebuilds without Vercel paid seats.">
-  
+  <title>Vercel Deployer Viewer — Self-Hosted Vercel Dashboard</title>
+  <meta name="description"
+    content="A self-hosted dashboard for viewing and managing Vercel Deployer, inspecting build logs, and triggering force-rebuilds without Vercel paid seats.">
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet">
+
   <style>
     /* Reset & Base variables */
     :root {
@@ -24,27 +28,31 @@
       --border-primary: #27272a;
       --border-secondary: #3f3f46;
       --border-focus: #52525b;
-      
+
       --accent-blue: #2563eb;
       --accent-blue-glow: rgba(37, 99, 235, 0.15);
       --accent-purple: #8b5cf6;
-      
+
       --status-ready: #10b981;
       --status-ready-bg: rgba(16, 185, 129, 0.12);
       --status-ready-border: rgba(16, 185, 129, 0.25);
-      
+
       --status-building: #f59e0b;
       --status-building-bg: rgba(245, 158, 11, 0.12);
       --status-building-border: rgba(245, 158, 11, 0.25);
-      
+
       --status-error: #ef4444;
       --status-error-bg: rgba(239, 68, 68, 0.12);
       --status-error-border: rgba(239, 68, 68, 0.25);
-      
+
       --status-canceled: #a1a1aa;
       --status-canceled-bg: rgba(161, 161, 170, 0.12);
       --status-canceled-border: rgba(161, 161, 170, 0.25);
-      
+
+      --status-blocked: #ef4444;
+      --status-blocked-bg: rgba(239, 68, 68, 0.1);
+      --status-blocked-border: rgba(239, 68, 68, 0.2);
+
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-display: 'Outfit', var(--font-sans);
       --font-mono: 'Fira Code', 'SFMono-Regular', Consolas, Courier, monospace;
@@ -73,18 +81,21 @@
       background: var(--accent-blue-glow);
       color: #fff;
     }
-    
+
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
+
     ::-webkit-scrollbar-track {
       background: var(--bg-primary);
     }
+
     ::-webkit-scrollbar-thumb {
       background: var(--border-primary);
       border-radius: 4px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
       background: var(--border-secondary);
     }
@@ -108,7 +119,7 @@
       z-index: -1;
       pointer-events: none;
     }
-    
+
     .glow-blob-purple {
       position: absolute;
       width: 500px;
@@ -281,7 +292,7 @@
     .btn-primary:hover {
       background-color: #fff;
       transform: translateY(-2px);
-      box-shadow: 0 10px 20px -10px rgba(255,255,255,0.15);
+      box-shadow: 0 10px 20px -10px rgba(255, 255, 255, 0.15);
     }
 
     .btn-secondary {
@@ -329,9 +340,18 @@
       height: 0.75rem;
       border-radius: 50%;
     }
-    .dot-red { background-color: #ef4444; }
-    .dot-yellow { background-color: #f59e0b; }
-    .dot-green { background-color: #10b981; }
+
+    .dot-red {
+      background-color: #ef4444;
+    }
+
+    .dot-yellow {
+      background-color: #f59e0b;
+    }
+
+    .dot-green {
+      background-color: #10b981;
+    }
 
     .window-title {
       font-size: 0.8rem;
@@ -344,7 +364,7 @@
       font-size: 0.75rem;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
-      background-color: rgba(255,255,255,0.05);
+      background-color: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-primary);
       color: var(--text-secondary);
       display: flex;
@@ -478,18 +498,17 @@
 
     .dash-table tr {
       border-bottom: 1px solid var(--border-primary);
-      cursor: pointer;
       transition: background-color 0.15s;
     }
-    
+
     .dash-table tr:last-child {
       border-bottom: none;
     }
 
     .dash-table tr:hover {
-      background-color: rgba(255,255,255,0.02);
+      background-color: rgba(255, 255, 255, 0.02);
     }
-    
+
     .dash-table tr.active-row {
       background-color: rgba(37, 99, 235, 0.05);
     }
@@ -547,7 +566,13 @@
       border: 1px solid var(--status-canceled-border);
       color: var(--status-canceled);
     }
-    
+
+    .status-blocked-badge {
+      background-color: var(--status-blocked-bg);
+      border: 1px solid var(--status-blocked-border);
+      color: var(--status-blocked);
+    }
+
     .status-badge-dot {
       width: 6px;
       height: 6px;
@@ -592,17 +617,54 @@
       border: 1px solid rgba(139, 92, 246, 0.25);
       color: #c084fc;
     }
-    
+
     .link-badge-jira {
       background-color: rgba(59, 130, 246, 0.1);
       border: 1px solid rgba(59, 130, 246, 0.25);
       color: #60a5fa;
     }
 
-    .btn-action-trigger {
+    .sim-actions-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sim-btn-deploy {
       background-color: var(--bg-tertiary);
       border: 1px solid var(--border-primary);
       color: var(--text-secondary);
+      padding: 0.35rem 0.65rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+
+    .sim-btn-deploy:hover:not(:disabled) {
+      background-color: var(--border-primary);
+      color: #fff;
+      border-color: var(--border-secondary);
+    }
+
+    .sim-btn-deploy:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .sim-dropdown-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .sim-dropdown-btn {
+      background-color: transparent;
+      border: 1px solid transparent;
+      color: var(--text-quaternary);
       width: 28px;
       height: 28px;
       border-radius: 4px;
@@ -613,131 +675,55 @@
       transition: all 0.2s;
     }
 
-    .btn-action-trigger:hover {
-      background-color: var(--border-primary);
-      color: #fff;
-    }
-
-    /* Drawer / Log Panel */
-    .drawer {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 440px;
-      background-color: var(--bg-secondary);
-      border-left: 1px solid var(--border-primary);
-      box-shadow: -10px 0 30px rgba(0,0,0,0.3);
-      display: flex;
-      flex-direction: column;
-      transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      z-index: 10;
-    }
-
-    .drawer.open {
-      transform: translateX(0);
-    }
-
-    .drawer-header {
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--border-primary);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .sim-dropdown-btn:hover,
+    .sim-dropdown-btn.active {
       background-color: var(--bg-tertiary);
-    }
-
-    .drawer-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-
-    .drawer-close {
-      background: none;
-      border: none;
-      color: var(--text-tertiary);
-      cursor: pointer;
-      font-size: 1.15rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .drawer-close:hover {
-      color: #fff;
-    }
-
-    .drawer-meta {
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--border-primary);
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      font-size: 0.8rem;
-      background-color: rgba(24, 24, 27, 0.2);
-    }
-
-    .meta-row {
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .meta-label {
-      color: var(--text-tertiary);
-    }
-
-    .meta-value {
-      font-family: var(--font-mono);
+      border-color: var(--border-primary);
       color: var(--text-secondary);
     }
 
-    .log-container {
-      flex-grow: 1;
-      padding: 1rem;
-      background-color: #050507;
-      overflow-y: auto;
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      line-height: 1.5;
-      color: #d4d4d8;
+    .sim-dropdown-panel {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 0.25rem;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      padding: 0.25rem;
+      z-index: 30;
+      width: 130px;
+      gap: 0.15rem;
     }
 
-    .log-line {
+    .sim-dropdown-item {
       display: flex;
-      gap: 0.5rem;
-      opacity: 0.95;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: background-color 0.2s, color 0.2s;
     }
 
-    .log-time {
-      color: var(--text-quaternary);
-      user-select: none;
-      flex-shrink: 0;
-    }
-
-    .log-text {
-      word-break: break-all;
-    }
-    
-    .log-text.log-info { color: #3b82f6; }
-    .log-text.log-success { color: #10b981; }
-    .log-text.log-error { color: #ef4444; }
-
-    .drawer-actions {
-      padding: 1rem;
-      border-top: 1px solid var(--border-primary);
+    .sim-dropdown-item:hover {
       background-color: var(--bg-tertiary);
-      display: flex;
-      gap: 0.75rem;
+      color: #fff;
     }
 
-    .drawer-actions button {
-      flex-grow: 1;
+    .sim-dropdown-item.disabled {
+      opacity: 0.35;
+      cursor: default;
+      pointer-events: none;
     }
 
+    /* Drawer / Log Panel */
     /* Modal Form for Branch Deploy */
     .modal-overlay {
       position: absolute;
@@ -941,7 +927,7 @@
     .feature-card:hover {
       border-color: var(--border-secondary);
       transform: translateY(-4px);
-      box-shadow: 0 12px 24px -10px rgba(0,0,0,0.4);
+      box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.4);
     }
 
     .feature-icon-wrapper {
@@ -1039,11 +1025,23 @@
       margin-top: 0.2rem;
     }
 
-    .comp-item-bad svg { color: var(--status-error); }
-    .comp-item-good svg { color: var(--status-ready); }
-    
-    .comp-title { font-weight: 500; color: #fff; }
-    .comp-desc { color: var(--text-secondary); margin-top: 0.15rem; }
+    .comp-item-bad svg {
+      color: var(--status-error);
+    }
+
+    .comp-item-good svg {
+      color: var(--status-ready);
+    }
+
+    .comp-title {
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .comp-desc {
+      color: var(--text-secondary);
+      margin-top: 0.15rem;
+    }
 
     /* Code & Setup Guide Section */
     .setup-section {
@@ -1108,7 +1106,7 @@
       border: 1px solid var(--border-primary);
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .tabs-header {
@@ -1145,7 +1143,12 @@
       overflow-x: auto;
       font-family: var(--font-mono);
       font-size: 0.8rem;
-      line-height: 1.5;
+      line-height: 1.6;
+    }
+
+    .code-line {
+      display: block;
+      min-height: 1.25rem;
     }
 
     .tab-panel {
@@ -1174,8 +1177,13 @@
 
     /* Animations */
     @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
     }
 
     @keyframes fadeInUp {
@@ -1183,6 +1191,7 @@
         opacity: 0;
         transform: translateY(20px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
@@ -1190,12 +1199,23 @@
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.92); }
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.92);
+      }
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .animate-spin {
@@ -1207,22 +1227,27 @@
       .hero-title {
         font-size: 2.5rem;
       }
+
       .nav-links {
         display: none;
       }
+
       .dash-toolbar {
         flex-direction: column;
         align-items: stretch;
       }
+
       .dash-filters {
         flex-direction: column;
       }
+
       .drawer {
         width: 100%;
       }
     }
   </style>
 </head>
+
 <body>
 
   <!-- Background Glowing Circles -->
@@ -1235,16 +1260,18 @@
     <div class="container nav-container">
       <a href="#" class="logo">
         <div class="logo-icon">V</div>
-        <span>Vercel Deployments</span>
+        <span>Vercel Deployer</span>
       </a>
       <div class="nav-links">
         <a href="#features" class="nav-link">Features</a>
         <a href="#simulator" class="nav-link">Live Simulator</a>
         <a href="#how-it-works" class="nav-link">How it Works</a>
         <a href="#setup" class="nav-link">Setup</a>
-        <a href="https://github.com/Akashno/vercel-deployments" target="_blank" rel="noopener noreferrer" class="btn-github">
+        <a href="https://github.com/Akashno/vercel-deployments" target="_blank" rel="noopener noreferrer"
+          class="btn-github">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8" />
           </svg>
           GitHub
         </a>
@@ -1258,10 +1285,11 @@
       <span>🎉</span> Free &amp; Self-Hosted Dashboard for Teams
     </div>
     <h1 class="hero-title">
-      Share Vercel Deployments with your entire team — <span>No Paid Seats</span>
+      Share Vercel Deployer with your entire team — <span>No Paid Seats</span>
     </h1>
     <p class="hero-subtitle">
-      Give project managers, QA engineers, designers, and clients full control. Let them watch builds, browse branches, stream logs, and trigger redeploys securely.
+      Give project managers, QA engineers, designers, and clients full control. Let them watch builds, browse branches,
+      stream logs, and trigger redeploys securely.
     </p>
     <div class="hero-ctas">
       <a href="#setup" class="btn btn-primary">Get Started Now</a>
@@ -1279,13 +1307,13 @@
           <div class="dot dot-yellow"></div>
           <div class="dot dot-green"></div>
         </div>
-        <div class="window-title">VERCEL DEPLOYMENTS VIEWER — SIMULATOR</div>
+        <div class="window-title">Vercel Deployer VIEWER — SIMULATOR</div>
         <div class="window-badge">
           <div class="live-dot"></div>
           <span>Demo Dashboard</span>
         </div>
       </div>
-      
+
       <!-- Inside Browser Frame -->
       <div class="dashboard" id="dashboard">
         <!-- Toolbar -->
@@ -1293,11 +1321,13 @@
           <div class="dash-filters">
             <div class="dash-search-container">
               <svg class="dash-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <input type="text" class="dash-search" id="sim-search" placeholder="Search branch, commit, author..." oninput="filterDeployments()">
+              <input type="text" class="dash-search" id="sim-search" placeholder="Search branch, commit, author..."
+                oninput="filterDeployments()">
             </div>
-            
+
             <select class="dash-select" id="sim-filter-status" onchange="filterDeployments()">
               <option value="">All statuses</option>
               <option value="READY">Ready</option>
@@ -1305,10 +1335,11 @@
               <option value="CANCELED">Canceled</option>
             </select>
           </div>
-          
+
           <button class="dash-btn-primary" onclick="openDeployModal()">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
             Deploy a Branch
           </button>
@@ -1323,7 +1354,7 @@
                 <th>Status</th>
                 <th>Created At</th>
                 <th>Author</th>
-                <th>Links &amp; Details</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="sim-table-body">
@@ -1332,29 +1363,7 @@
           </table>
         </div>
 
-        <!-- Logs Drawer (Slide-out) -->
-        <div class="drawer" id="logs-drawer">
-          <div class="drawer-header">
-            <span class="drawer-title" id="drawer-title-text">Inspect Deployment</span>
-            <button class="drawer-close" onclick="closeDrawer()">✕</button>
-          </div>
-          <div class="drawer-meta">
-            <div class="meta-row">
-              <span class="meta-label">Branch</span>
-              <span class="meta-value" id="meta-branch">main</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-label">Commit SHA</span>
-              <span class="meta-value" id="meta-sha">abc1234</span>
-            </div>
-          </div>
-          <div class="log-container" id="log-console">
-            <!-- Simulated Logs Stream -->
-          </div>
-          <div class="drawer-actions" id="drawer-action-container">
-            <!-- Contextual action triggers -->
-          </div>
-        </div>
+
 
         <!-- Deploy Modal Overlay -->
         <div class="modal-overlay" id="deploy-modal-overlay">
@@ -1363,37 +1372,20 @@
             <div class="modal-body">
               <div class="form-group">
                 <label class="form-label" for="modal-branch-select">Select Target Branch</label>
-                <select class="dash-select" id="modal-branch-select" style="width: 100%; background-position: right 0.75rem center;">
-                  <option value="bugfix/logs-scroll">bugfix/logs-scroll (Canceled)</option>
-                  <option value="feature/auth-page">feature/auth-page (Ready)</option>
-                  <option value="docs/update-readme">docs/update-readme (Ready)</option>
+                <select class="dash-select" id="modal-branch-select"
+                  style="width: 100%; background-position: right 0.75rem center;">
+                  <option value="bugfix/logs-scroll">bugfix/logs-scroll (Blocked)</option>
+                  <option value="feature/auth-page">feature/auth-page (Blocked)</option>
+                  <option value="docs/update-readme">docs/update-readme (Blocked)</option>
                 </select>
-              </div>
-              
-              <!-- Visual Step-by-Step flow inside modal -->
-              <div class="workflow-flow" id="modal-flow-visual" style="display: none;">
-                <div class="flow-line"></div>
-                <div class="flow-line-progress" id="sim-flow-progress"></div>
-                <div class="flow-node" id="node-gh-api">
-                  <div class="node-circle">1</div>
-                  <div class="node-label">GitHub API</div>
-                </div>
-                <div class="flow-node" id="node-git-commit">
-                  <div class="node-circle">2</div>
-                  <div class="node-label">Empty Commit</div>
-                </div>
-                <div class="flow-node" id="node-vercel-build">
-                  <div class="node-circle">3</div>
-                  <div class="node-label">Vercel Build</div>
-                </div>
-              </div>
-              <div id="modal-flow-status" style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; margin-top: -0.5rem; display: none;">
-                Preparing API call...
               </div>
             </div>
             <div class="modal-footer" id="modal-footer-actions">
-              <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="closeDeployModal()">Cancel</button>
-              <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color:#3b82f6; border-color:#3b82f6; color:#fff;" onclick="triggerForceDeploy()">Trigger Deploy</button>
+              <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"
+                onclick="closeDeployModal()">Cancel</button>
+              <button class="btn btn-primary"
+                style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color:#3b82f6; border-color:#3b82f6; color:#fff;"
+                onclick="triggerForceDeploy()">Trigger Deploy</button>
             </div>
           </div>
         </div>
@@ -1406,68 +1398,81 @@
   <section class="features-section" id="features">
     <div class="container">
       <h2 class="section-title">Everything you need, built for teams</h2>
-      <p class="section-subtitle">A lightweight, high-performance portal designed to bridge the gap between your development tools and non-technical stakeholders.</p>
-      
+      <p class="section-subtitle">A lightweight, high-performance portal designed to bridge the gap between your
+        development tools and non-technical stakeholders.</p>
+
       <div class="features-grid">
         <!-- Feature 1 -->
         <div class="feature-card">
           <div class="feature-icon-wrapper">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </div>
           <h3 class="feature-title">Seat-Free Force Redeploys</h3>
-          <p class="feature-desc">Redeploy any branch without paying for extra Vercel team seats. Bypasses limitations securely via GitHub's low-level Git API.</p>
+          <p class="feature-desc">Redeploy any branch without paying for extra Vercel team seats. Bypasses limitations
+            securely via GitHub's low-level Git API.</p>
         </div>
         <!-- Feature 2 -->
         <div class="feature-card">
           <div class="feature-icon-wrapper">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
           <h3 class="feature-title">Real-Time Build Logs</h3>
-          <p class="feature-desc">Watch standard output and build steps in real-time as they stream from Vercel's logs, letting QA identify compile errors instantly.</p>
+          <p class="feature-desc">Watch standard output and build steps in real-time as they stream from Vercel's logs,
+            letting QA identify compile errors instantly.</p>
         </div>
         <!-- Feature 3 -->
         <div class="feature-card">
           <div class="feature-icon-wrapper">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>
           <h3 class="feature-title">PR &amp; Jira Integrations</h3>
-          <p class="feature-desc">Automatically parses branch names to surface links to active GitHub Pull Requests and Jira tickets right in the deployment listing.</p>
+          <p class="feature-desc">Automatically parses branch names to surface links to active GitHub Pull Requests and
+            Jira tickets right in the deployment listing.</p>
         </div>
         <!-- Feature 4 -->
         <div class="feature-card">
           <div class="feature-icon-wrapper">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
           <h3 class="feature-title">Protected Behind Simple Auth</h3>
-          <p class="feature-desc">Protect your project with absolute privacy. Built-in basic session authentication ensures only authorized personnel can access details.</p>
+          <p class="feature-desc">Protect your project with absolute privacy. Built-in basic session authentication
+            ensures only authorized personnel can access details.</p>
         </div>
         <!-- Feature 5 -->
         <div class="feature-card">
           <div class="feature-icon-wrapper">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
           </div>
           <h3 class="feature-title">Cancel Active Builds</h3>
-          <p class="feature-desc">Cancel stuck runs or unneeded branch deployments directly with a single click, saving Vercel build minutes effortlessly.</p>
+          <p class="feature-desc">Cancel stuck runs or unneeded branch deployments directly with a single click, saving
+            Vercel build minutes effortlessly.</p>
         </div>
         <!-- Feature 6 -->
         <div class="feature-card">
           <div class="feature-icon-wrapper">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
           </div>
           <h3 class="feature-title">Fast Searching &amp; Filters</h3>
-          <p class="feature-desc">Find what you need in seconds with interactive client-side queries across branches, commit messages, and deployment authors.</p>
+          <p class="feature-desc">Find what you need in seconds with interactive client-side queries across branches,
+            commit messages, and deployment authors.</p>
         </div>
       </div>
     </div>
@@ -1477,8 +1482,9 @@
   <section class="how-it-works-section" id="how-it-works">
     <div class="container">
       <h2 class="section-title">The Vercel Paid-Seat Restriction</h2>
-      <p class="section-subtitle">Vercel blocks non-paid team seats from triggering branch rebuilds or logging in. Here is how we bypass it cleanly.</p>
-      
+      <p class="section-subtitle">Vercel blocks non-paid team seats from triggering branch rebuilds or logging in. Here
+        is how we bypass it cleanly.</p>
+
       <div class="comparison-wrapper">
         <!-- Bad way -->
         <div class="comp-card comp-bad">
@@ -1489,21 +1495,29 @@
             <span>The Vercel Way</span>
           </div>
           <div class="comp-item comp-item-bad">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
             <div>
               <div class="comp-title">Requires Paid Vercel Seats</div>
-              <div class="comp-desc">Every PM, QA engineer, designer, or client needs a Vercel license ($20+/month per user) just to trigger redeploys.</div>
+              <div class="comp-desc">Every PM, QA engineer, designer, or client needs a Vercel license ($20+/month per
+                user) just to trigger redeploys.</div>
             </div>
           </div>
           <div class="comp-item comp-item-bad">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
             <div>
               <div class="comp-title">Direct Account Access</div>
-              <div class="comp-desc">Sharing access requires exposing core Vercel platform configurations, which poses billing and security risks.</div>
+              <div class="comp-desc">Sharing access requires exposing core Vercel platform configurations, which poses
+                billing and security risks.</div>
             </div>
           </div>
         </div>
-        
+
         <!-- Good way -->
         <div class="comp-card comp-good">
           <div class="comp-header">
@@ -1513,17 +1527,25 @@
             <span>The Empty Commit Bypass</span>
           </div>
           <div class="comp-item comp-item-good">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             <div>
               <div class="comp-title">Free Self-Hosted Dashboard</div>
-              <div class="comp-desc">Bypasses seats by programmatically committing/pushing a safe, empty commit tree directly using GitHub Git Data APIs.</div>
+              <div class="comp-desc">Bypasses seats by programmatically committing/pushing a safe, empty commit tree
+                directly using GitHub Git Data APIs.</div>
             </div>
           </div>
           <div class="comp-item comp-item-good">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             <div>
               <div class="comp-title">Clean History, No workflows</div>
-              <div class="comp-desc">Uses <code>git commit --allow-empty</code> which modifies 0 lines, keeping history tidy. No repo actions or workflows required.</div>
+              <div class="comp-desc">Uses <code>git commit --allow-empty</code> which modifies 0 lines, keeping history
+                tidy. No repo actions or workflows required.</div>
             </div>
           </div>
         </div>
@@ -1534,17 +1556,19 @@
   <!-- Setup / Code Guide Section -->
   <section class="setup-section" id="setup">
     <div class="container setup-layout">
-      
+
       <!-- Steps Text -->
       <div class="setup-steps">
         <h2 class="section-title" style="text-align: left; margin-bottom: 0.5rem;">Quick Self-Hosting Guide</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">Deploy this dashboard locally or to any hosting service supporting Node/Docker in less than 5 minutes.</p>
-        
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">Deploy this dashboard
+          locally or to any hosting service supporting Node/Docker in less than 5 minutes.</p>
+
         <div class="step">
           <div class="step-number">1</div>
           <div class="step-content">
             <h3>Clone the Repository</h3>
-            <p>Clone the project repository to your local system or deployment server, and run package installations.</p>
+            <p>Clone the project repository to your local system or deployment server, and run package installations.
+            </p>
           </div>
         </div>
 
@@ -1552,7 +1576,8 @@
           <div class="step-number">2</div>
           <div class="step-content">
             <h3>Configure Environment</h3>
-            <p>Create a <code>.env</code> file based on <code>.env.example</code>. Set up Vercel keys and optional GitHub token parameters.</p>
+            <p>Create a <code>.env</code> file based on <code>.env.example</code>. Set up Vercel keys and optional
+              GitHub token parameters.</p>
           </div>
         </div>
 
@@ -1560,7 +1585,8 @@
           <div class="step-number">3</div>
           <div class="step-content">
             <h3>Launch Dashboard</h3>
-            <p>Start the developer server with <code>npm run dev</code> or build production outputs using Nuxt Nitro bundling commands.</p>
+            <p>Start the developer server with <code>npm run dev</code> or build production outputs using Nuxt Nitro
+              bundling commands.</p>
           </div>
         </div>
       </div>
@@ -1572,44 +1598,69 @@
           <button class="tab-btn" onclick="switchTab(event, 'tab-config')">Configure (.env)</button>
           <button class="tab-btn" onclick="switchTab(event, 'tab-run')">Run</button>
         </div>
-        
+
         <div class="code-container">
           <!-- Install Panel -->
           <div class="tab-panel active" id="tab-install">
-<span style="color:#71717a"># Clone the repository</span>
-<span style="color:#f4f4f5">git clone https://github.com/Akashno/vercel-deployments.git</span>
-
-<span style="color:#71717a"># Change directory</span>
-<span style="color:#f4f4f5">cd vercel-deployments</span>
-
-<span style="color:#71717a"># Install Node modules</span>
-<span style="color:#f4f4f5">npm install</span>
+            <div class="code-line"><span style="color:#71717a"># Clone the repository</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">git clone
+                https://github.com/Akashno/vercel-deployments.git</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Change directory</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">cd vercel-deployments</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Install Node modules</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">npm install</span></div>
           </div>
-          
+
           <!-- Config Panel -->
           <div class="tab-panel" id="tab-config">
-<span style="color:#60a5fa">VERCEL_TOKEN</span>=<span style="color:#a855f7">"vcl_token_here"</span>
-<span style="color:#60a5fa">PROJECT_ID</span>=<span style="color:#a855f7">"prj_projectIdHere"</span>
-<span style="color:#60a5fa">AUTH_USERNAME</span>=<span style="color:#a855f7">"admin"</span>
-<span style="color:#60a5fa">AUTH_PASSWORD</span>=<span style="color:#a855f7">"dashboardPass123"</span>
-<span style="color:#60a5fa">AUTH_SECRET</span>=<span style="color:#a855f7">"d485e9...6cb27"</span>
-
-<span style="color:#71717a"># Optional: For empty-commit Redeployment feature</span>
-<span style="color:#60a5fa">GITHUB_TOKEN</span>=<span style="color:#a855f7">"github_pat_with_contents_write"</span>
-<span style="color:#60a5fa">GITHUB_OWNER</span>=<span style="color:#a855f7">"Akashno"</span>
-<span style="color:#60a5fa">GITHUB_REPO</span>=<span style="color:#a855f7">"vercel-deployments"</span>
+            <div class="code-line"><span style="color:#71717a"># Vercel Configuration</span></div>
+            <div class="code-line"><span style="color:#60a5fa">VERCEL_TOKEN</span>=<span
+                style="color:#a855f7">"vcl_token_here"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">PROJECT_ID</span>=<span
+                style="color:#a855f7">"prj_projectIdHere"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">TEAM_ID</span>=<span style="color:#a855f7">""</span>
+              <span style="color:#71717a"># Required only if project is in a team</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Dashboard Authentication</span></div>
+            <div class="code-line"><span style="color:#60a5fa">AUTH_USERNAME</span>=<span
+                style="color:#a855f7">"admin"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">AUTH_PASSWORD</span>=<span
+                style="color:#a855f7">"dashboardPass123"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">AUTH_SECRET</span>=<span
+                style="color:#a855f7">"d485e982ca8586cfb9a9108b98124efac6b27"</span> <span style="color:#71717a">#
+                32-character hex key</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># GitHub Integration (For deploying without paid
+                seat)</span></div>
+            <div class="code-line"><span style="color:#60a5fa">GITHUB_TOKEN</span>=<span
+                style="color:#a855f7">"github_pat_with_contents_write"</span> <span style="color:#71717a"># Fine-grained
+                PAT (Contents: read/write)</span></div>
+            <div class="code-line"><span style="color:#60a5fa">GITHUB_OWNER</span>=<span
+                style="color:#a855f7">"Akashno"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">GITHUB_REPO</span>=<span
+                style="color:#a855f7">"vercel-deployments"</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Jira Integration (Optional)</span></div>
+            <div class="code-line"><span style="color:#60a5fa">JIRA_ORG</span>=<span style="color:#a855f7">"acme"</span>
+            </div>
+            <div class="code-line"><span style="color:#60a5fa">JIRA_EMAIL</span>=<span
+                style="color:#a855f7">"user@company.com"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">JIRA_API_TOKEN</span>=<span
+                style="color:#a855f7">"jira_token_here"</span></div>
           </div>
 
           <!-- Run Panel -->
           <div class="tab-panel" id="tab-run">
-<span style="color:#71717a"># Start dev environment (runs on port 3000)</span>
-<span style="color:#f4f4f5">npm run dev</span>
-
-<span style="color:#71717a"># Build for production distribution bundle</span>
-<span style="color:#f4f4f5">npm run build</span>
-
-<span style="color:#71717a"># Run local preview server</span>
-<span style="color:#f4f4f5">npm run preview</span>
+            <div class="code-line"><span style="color:#71717a"># Start dev environment (runs on port 3000)</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">npm run dev</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Build for production distribution bundle</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">npm run build</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Run local preview server</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">npm run preview</span></div>
           </div>
         </div>
       </div>
@@ -1624,9 +1675,10 @@
         <a href="#features" class="nav-link">Features</a>
         <a href="#simulator" class="nav-link">Live Simulator</a>
         <a href="#setup" class="nav-link">Setup</a>
-        <a href="https://github.com/Akashno/vercel-deployments" class="nav-link" target="_blank" rel="noopener noreferrer">GitHub Project</a>
+        <a href="https://github.com/Akashno/vercel-deployments" class="nav-link" target="_blank"
+          rel="noopener noreferrer">GitHub Project</a>
       </div>
-      <p>&copy; 2026 Vercel Deployments Viewer. Released under the MIT License.</p>
+      <p>&copy; 2026 Vercel Deployer Viewer. Released under the MIT License.</p>
     </div>
   </footer>
 
@@ -1661,17 +1713,15 @@
         commitSha: '8f9b4c2a1e3d5f6',
         commitMessage: 'feat: add oauth provider login',
         commitAuthor: 'developer-alex',
-        state: 'BUILDING',
-        createdAt: Date.now() - 60000, // 1 min ago
+        state: 'BLOCKED',
+        createdAt: Date.now() - 3600000 * 1, // 1 hr ago
         target: null,
         prId: '42',
         jiraId: 'PROJ-101',
         logs: [
-          { time: '13:30:15', text: 'Cloning repository github.com/Akashno/vercel-deployments...', type: 'info' },
-          { time: '13:30:17', text: 'Installing dependencies with npm ci...', type: 'info' },
-          { time: '13:30:35', text: 'Build started: nuxt build', type: 'info' },
-          { time: '13:30:40', text: 'Running build tasks (vite, vue-tsc)...', type: 'info' },
-          { time: '13:30:44', text: 'Generating server routes...', type: 'info' }
+          { time: '13:30:15', text: 'Deployment BLOCKED.', type: 'error' },
+          { time: '13:30:16', text: 'Error: Only paid Vercel team members can deploy branches on this project.', type: 'error' },
+          { time: '13:30:16', text: 'To enable this branch, use the Force-Deploy action to bypass the restriction securely.', type: 'info' }
         ]
       },
       {
@@ -1680,16 +1730,14 @@
         commitSha: '3e5d7f1c9b8a2d3',
         commitMessage: 'fix: scroll to bottom in logs stream',
         commitAuthor: 'designer-jane',
-        state: 'CANCELED',
+        state: 'BLOCKED',
         createdAt: Date.now() - 3600000 * 24, // 1 day ago
         target: null,
         prId: '41',
         jiraId: 'PROJ-94',
         logs: [
-          { time: '13:04:12', text: 'Cloning repository github.com/Akashno/vercel-deployments...', type: 'info' },
-          { time: '13:04:14', text: 'Installing dependencies with npm ci...', type: 'info' },
-          { time: '13:04:32', text: 'Build started: nuxt build', type: 'info' },
-          { time: '13:04:35', text: 'Deployment canceled by administrator.', type: 'error' }
+          { time: '13:04:12', text: 'Deployment BLOCKED.', type: 'error' },
+          { time: '13:04:13', text: 'Error: Only paid Vercel team members can deploy branches on this project.', type: 'error' }
         ]
       },
       {
@@ -1698,23 +1746,21 @@
         commitSha: '1a2b3c4d5e6f7g8',
         commitMessage: 'docs: update self-hosting guide',
         commitAuthor: 'writer-mark',
-        state: 'READY',
+        state: 'BLOCKED',
         createdAt: Date.now() - 3600000 * 48, // 2 days ago
         target: null,
         prId: null,
         jiraId: null,
         logs: [
-          { time: '11:00:10', text: 'Cloning repository github.com/Akashno/vercel-deployments...', type: 'info' },
-          { time: '11:00:12', text: 'Installing dependencies with npm ci...', type: 'info' },
-          { time: '11:00:30', text: 'Build started: nuxt build', type: 'info' },
-          { time: '11:00:41', text: 'Code compiled successfully.', type: 'success' },
-          { time: '11:00:45', text: 'Deployment is live! URL: https://vercel-deployments-3k9e8.vercel.app', type: 'success' }
+          { time: '11:00:10', text: 'Deployment BLOCKED.', type: 'error' },
+          { time: '11:00:11', text: 'Error: Only paid Vercel team members can deploy branches on this project.', type: 'error' }
         ]
       }
     ];
 
     let currentSelectedUid = null;
     let isCurrentlyDeployingAnimation = false;
+    let openDropdownUid = null;
 
     // Build Time format helpers
     function relativeTime(ts) {
@@ -1724,6 +1770,12 @@
       if (abs < 3600) return `${Math.round(abs / 60)}m ago`;
       if (abs < 86400) return `${Math.round(abs / 3600)}h ago`;
       return `${Math.round(abs / 86400)}d ago`;
+    }
+
+    function toggleDropdown(event, uid) {
+      event.stopPropagation();
+      openDropdownUid = openDropdownUid === uid ? null : uid;
+      renderTable();
     }
 
     // Render Table
@@ -1739,24 +1791,67 @@
         if (query && !d.branch.toLowerCase().includes(query) && !d.commitMessage.toLowerCase().includes(query) && !d.commitAuthor.toLowerCase().includes(query)) return;
 
         const tr = document.createElement('tr');
-        if (currentSelectedUid === d.uid) tr.className = 'active-row';
-        tr.onclick = () => selectRow(d.uid);
 
         // Status Badge class
         let badgeClass = 'status-ready-badge';
         if (d.state === 'BUILDING') badgeClass = 'status-building-badge';
         if (d.state === 'CANCELED') badgeClass = 'status-canceled-badge';
+        if (d.state === 'BLOCKED') badgeClass = 'status-blocked-badge';
         if (d.state === 'ERROR') badgeClass = 'status-error-badge';
 
-        // PR and Jira elements
-        let linksHtml = '';
-        if (d.prId) {
-          linksHtml += `<a href="#" class="link-badge link-badge-pr" onclick="event.stopPropagation()">PR #${d.prId}</a> `;
+        // Deploy Button
+        let deployButtonHtml = '';
+        if (d.state === 'BUILDING') {
+          deployButtonHtml = `
+            <button class="sim-btn-deploy" disabled style="opacity: 0.6;">
+              <svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.25"></circle>
+                <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+              </svg>
+              <span>Deploying</span>
+            </button>
+          `;
+        } else {
+          deployButtonHtml = `
+            <button class="sim-btn-deploy" onclick="event.stopPropagation(); triggerDeployDirectly('${d.branch}')" title="Deploy ${d.branch}">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              <span>Deploy</span>
+            </button>
+          `;
         }
-        if (d.jiraId) {
-          linksHtml += `<a href="#" class="link-badge link-badge-jira" onclick="event.stopPropagation()">${d.jiraId}</a>`;
+
+        // PR and Jira elements in Dropdown
+        let dropdownHtml = '';
+        if (openDropdownUid === d.uid) {
+          const prLink = d.prId ? `https://github.com/Akashno/vercel-deployments/pull/${d.prId}` : '#';
+          const prClass = d.prId ? 'sim-dropdown-item' : 'sim-dropdown-item disabled';
+          const prText = d.prId ? `PR #${d.prId}` : 'No PR linked';
+
+          const jiraTicket = d.jiraId;
+          const jiraLink = jiraTicket ? `https://akashno.atlassian.net/browse/${jiraTicket}` : '#';
+          const jiraClass = jiraTicket ? 'sim-dropdown-item' : 'sim-dropdown-item disabled';
+          const jiraText = jiraTicket ? jiraTicket : 'No Jira ticket';
+
+          dropdownHtml = `
+            <div class="sim-dropdown-panel" onclick="event.stopPropagation()">
+              <a href="${prLink}" target="_blank" rel="noopener noreferrer" class="${prClass}" onclick="openDropdownUid = null; renderTable();">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+                </svg>
+                <span>${prText}</span>
+              </a>
+              <a href="${jiraLink}" target="_blank" rel="noopener noreferrer" class="${jiraClass}" onclick="openDropdownUid = null; renderTable();">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color: #2684FF; fill: currentColor;">
+                  <path d="M11.53 2C11.53 2 11.83 3.65 10.3 5.17L2.14 13.34C0.65 14.83 0.65 17.22 2.14 18.71L5.29 21.86C6.78 23.35 9.17 23.35 10.66 21.86L18.83 13.69C20.35 12.16 22 12.47 22 12.47L20.25 10.72L18.8 9.27L11.53 2Z"/>
+                  <path d="M22 12.47V21.1C22 21.6 21.6 22 21.1 22H12.47L22 12.47Z" opacity="0.8"/>
+                </svg>
+                <span>${jiraText}</span>
+              </a>
+            </div>
+          `;
         }
-        if (!linksHtml) linksHtml = `<span style="color:var(--text-tertiary)">—</span>`;
 
         tr.innerHTML = `
           <td>
@@ -1776,89 +1871,22 @@
           </td>
           <td style="color: var(--text-secondary)">${relativeTime(d.createdAt)}</td>
           <td style="color: var(--text-secondary)">${d.commitAuthor}</td>
-          <td>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div class="link-icons">${linksHtml}</div>
-              <button class="btn-action-trigger" title="Inspect logs">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+          <td onclick="event.stopPropagation()">
+            <div class="sim-actions-cell">
+              ${deployButtonHtml}
+              <div class="sim-dropdown-container">
+                <button class="sim-dropdown-btn ${openDropdownUid === d.uid ? 'active' : ''}" onclick="toggleDropdown(event, '${d.uid}')">
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                  </svg>
+                </button>
+                ${dropdownHtml}
+              </div>
             </div>
           </td>
         `;
         tbody.appendChild(tr);
       });
-    }
-
-    // Select row to open drawer
-    function selectRow(uid) {
-      if (isCurrentlyDeployingAnimation) return; // lock selection during animation
-      currentSelectedUid = uid;
-      renderTable();
-
-      const deployment = DEPLOYMENTS_DB.find(d => d.uid === uid);
-      if (!deployment) return;
-
-      document.getElementById('meta-branch').textContent = deployment.branch;
-      document.getElementById('meta-sha').textContent = deployment.commitSha.slice(0, 7);
-      document.getElementById('drawer-title-text').textContent = `Logs: ${deployment.branch}`;
-
-      const consoleLog = document.getElementById('log-console');
-      consoleLog.innerHTML = '';
-      
-      deployment.logs.forEach(log => {
-        const line = document.createElement('div');
-        line.className = 'log-line';
-        
-        let typeClass = '';
-        if (log.type === 'success') typeClass = 'log-success';
-        if (log.type === 'error') typeClass = 'log-error';
-        if (log.type === 'info') typeClass = 'log-info';
-
-        line.innerHTML = `
-          <span class="log-time">[${log.time}]</span>
-          <span class="log-text ${typeClass}">${log.text}</span>
-        `;
-        consoleLog.appendChild(line);
-      });
-
-      // Contextual Action Buttons in Drawer
-      const actionsDiv = document.getElementById('drawer-action-container');
-      actionsDiv.innerHTML = '';
-      
-      if (deployment.state === 'READY' || deployment.state === 'CANCELED') {
-        const deployBtn = document.createElement('button');
-        deployBtn.className = 'btn btn-primary';
-        deployBtn.style = 'font-size:0.85rem; padding: 0.5rem; justify-content:center;';
-        deployBtn.innerHTML = `
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="stroke-width:2.5px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-          Force Redeploy Branch
-        `;
-        deployBtn.onclick = () => {
-          openDeployModal(deployment.branch);
-        };
-        actionsDiv.appendChild(deployBtn);
-      } else if (deployment.state === 'BUILDING') {
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn btn-secondary';
-        cancelBtn.style = 'font-size:0.85rem; padding: 0.5rem; justify-content:center; color:#ef4444; border-color:rgba(239, 68, 68, 0.2);';
-        cancelBtn.innerHTML = `✕ Cancel Build`;
-        cancelBtn.onclick = () => {
-          deployment.state = 'CANCELED';
-          deployment.logs.push({ time: new Date().toTimeString().split(' ')[0], text: 'Build canceled by user simulator.', type: 'error' });
-          selectRow(deployment.uid);
-        };
-        actionsDiv.appendChild(cancelBtn);
-      }
-
-      document.getElementById('logs-drawer').classList.add('open');
-    }
-
-    function closeDrawer() {
-      document.getElementById('logs-drawer').classList.remove('open');
-      currentSelectedUid = null;
-      renderTable();
     }
 
     // Filter Trigger
@@ -1868,7 +1896,6 @@
 
     // Deploy Modal Controls
     function openDeployModal(preselectedBranch = '') {
-      closeDrawer();
       const select = document.getElementById('modal-branch-select');
       if (preselectedBranch) {
         select.value = preselectedBranch;
@@ -1877,137 +1904,52 @@
     }
 
     function closeDeployModal() {
-      if (isCurrentlyDeployingAnimation) return; // block close during active deploy script
       document.getElementById('deploy-modal-overlay').classList.remove('open');
-      // Reset visual state
-      document.getElementById('modal-flow-visual').style.display = 'none';
-      document.getElementById('modal-flow-status').style.display = 'none';
-      document.getElementById('modal-footer-actions').style.display = 'flex';
-      
-      const nodes = ['node-gh-api', 'node-git-commit', 'node-vercel-build'];
-      nodes.forEach(n => {
-        document.getElementById(n).classList.remove('active', 'completed');
-      });
-      document.getElementById('sim-flow-progress').style.width = '0%';
     }
 
-    // Trigger deployment animation
+    // Trigger deployment directly or from modal
     function triggerForceDeploy() {
-      isCurrentlyDeployingAnimation = true;
       const targetBranch = document.getElementById('modal-branch-select').value;
-      
-      // UI swaps
-      document.getElementById('modal-flow-visual').style.display = 'flex';
-      document.getElementById('modal-flow-status').style.display = 'block';
-      document.getElementById('modal-footer-actions').style.display = 'none';
+      closeDeployModal();
+      triggerDeployDirectly(targetBranch);
+    }
 
-      const statusText = document.getElementById('modal-flow-status');
-      const progressBar = document.getElementById('sim-flow-progress');
+    function triggerDeployDirectly(branch) {
+      // Find info from existing DB entry to preserve PR / Jira link context if applicable
+      const existing = DEPLOYMENTS_DB.find(d => d.branch === branch) || {};
 
-      // Sequence timer
-      // Step 1: GitHub API Request
-      statusText.textContent = 'Calling GitHub Git Database API...';
-      document.getElementById('node-gh-api').classList.add('active');
-      progressBar.style.width = '20%';
+      const newSha = 'sha_' + Math.random().toString(36).substring(2, 9);
 
+      const newDep = {
+        uid: 'dep_' + Math.random().toString(36).substring(2, 14),
+        branch: branch,
+        commitSha: newSha,
+        commitMessage: 'chore: manual empty commit',
+        commitAuthor: 'github-actions[bot]',
+        state: 'BUILDING',
+        createdAt: Date.now(),
+        target: branch === 'main' ? 'production' : null,
+        prId: existing.prId || null,
+        jiraId: existing.jiraId || null,
+        logs: []
+      };
+
+      // Add to top of array
+      DEPLOYMENTS_DB.unshift(newDep);
+
+      // Keep maximum 10 elements in the database
+      if (DEPLOYMENTS_DB.length > 10) {
+        DEPLOYMENTS_DB.pop();
+      }
+
+      // Update UI
+      renderTable();
+
+      // Simulate building for 3 seconds, then go to READY (deployed)
       setTimeout(() => {
-        // Step 2: Empty commit push
-        document.getElementById('node-gh-api').classList.remove('active');
-        document.getElementById('node-gh-api').classList.add('completed');
-        document.getElementById('node-git-commit').classList.add('active');
-        statusText.innerHTML = 'Creating tree &amp; pushing: <code>git commit --allow-empty</code>';
-        progressBar.style.width = '55%';
-
-        setTimeout(() => {
-          // Step 3: Webhook trigger
-          document.getElementById('node-git-commit').classList.remove('active');
-          document.getElementById('node-git-commit').classList.add('completed');
-          document.getElementById('node-vercel-build').classList.add('active');
-          statusText.textContent = 'Push received! Vercel webhook launched build...';
-          progressBar.style.width = '90%';
-
-          // Modify state in DB
-          let dep = DEPLOYMENTS_DB.find(d => d.branch === targetBranch);
-          const newSha = 'sha_' + Math.random().toString(36).substring(2, 9);
-          
-          if (dep) {
-            dep.state = 'BUILDING';
-            dep.commitSha = newSha;
-            dep.commitMessage = 'chore: manual empty commit';
-            dep.commitAuthor = 'github-actions[bot]';
-            dep.createdAt = Date.now();
-            dep.logs = [
-              { time: new Date().toTimeString().split(' ')[0], text: 'GitHub webhook triggered: ref update pushed by github-actions[bot]', type: 'info' },
-              { time: new Date().toTimeString().split(' ')[0], text: 'Cloning repository github.com/Akashno/vercel-deployments...', type: 'info' },
-              { time: new Date().toTimeString().split(' ')[0], text: 'Installing dependencies with npm ci...', type: 'info' }
-            ];
-          }
-
-          setTimeout(() => {
-            // Close modal & open logs drawer
-            isCurrentlyDeployingAnimation = false;
-            closeDeployModal();
-            renderTable();
-            if (dep) selectRow(dep.uid);
-
-            // Stream new logs
-            let logIndex = 0;
-            const extraLogs = [
-              { text: 'Build started: nuxt build', type: 'info' },
-              { text: 'vite v5.2.11 building for production...', type: 'info' },
-              { text: 'Client build compiled successfully in 1.4s', type: 'success' },
-              { text: 'Server build compiled successfully in 0.8s', type: 'success' },
-              { text: 'Generating server routes...', type: 'info' },
-              { text: 'Uploading build outputs to Vercel...', type: 'info' },
-              { text: 'Deployment is live! URL: https://vercel-deployments-' + newSha.slice(0, 5) + '.vercel.app', type: 'success' }
-            ];
-
-            const streamTimer = setInterval(() => {
-              if (logIndex < extraLogs.length) {
-                const now = new Date();
-                const timeStr = now.toTimeString().split(' ')[0];
-                const nextLog = extraLogs[logIndex++];
-                
-                dep.logs.push({
-                  time: timeStr,
-                  text: nextLog.text,
-                  type: nextLog.type
-                });
-                
-                // If drawer is still open, re-render drawer log viewport
-                if (currentSelectedUid === dep.uid) {
-                  const consoleLog = document.getElementById('log-console');
-                  const line = document.createElement('div');
-                  line.className = 'log-line';
-                  
-                  let typeClass = '';
-                  if (nextLog.type === 'success') typeClass = 'log-success';
-                  if (nextLog.type === 'error') typeClass = 'log-error';
-                  if (nextLog.type === 'info') typeClass = 'log-info';
-
-                  line.innerHTML = `
-                    <span class="log-time">[${timeStr}]</span>
-                    <span class="log-text ${typeClass}">${nextLog.text}</span>
-                  `;
-                  consoleLog.appendChild(line);
-                  consoleLog.scrollTop = consoleLog.scrollHeight; // auto-scroll
-                }
-
-                // If final line, complete build status
-                if (logIndex === extraLogs.length) {
-                  dep.state = 'READY';
-                  renderTable();
-                  if (currentSelectedUid === dep.uid) selectRow(dep.uid); // refresh buttons in drawer
-                  clearInterval(streamTimer);
-                }
-              }
-            }, 1000);
-
-          }, 1500);
-
-        }, 1500);
-
-      }, 1500);
+        newDep.state = 'READY';
+        renderTable();
+      }, 3000);
     }
 
     // Code setup guide switch tab logic
@@ -2017,7 +1959,7 @@
       for (let i = 0; i < panels.length; i++) {
         panels[i].classList.remove('active');
       }
-      
+
       const buttons = document.getElementsByClassName('tab-btn');
       for (let i = 0; i < buttons.length; i++) {
         buttons[i].classList.remove('active');
@@ -2028,8 +1970,17 @@
       evt.currentTarget.classList.add('active');
     }
 
+    // Global click listener to close dropdowns
+    document.addEventListener('click', () => {
+      if (openDropdownUid !== null) {
+        openDropdownUid = null;
+        renderTable();
+      }
+    });
+
     // Start
     renderTable();
   </script>
 </body>
+
 </html>

@@ -1,4 +1,4 @@
-# Vercel Deployments Viewer
+# Vercel Deployer Viewer
 
 A self-hosted dashboard for viewing and managing [Vercel](https://vercel.com)
 deployments — without giving everyone a paid Vercel seat. Built with
