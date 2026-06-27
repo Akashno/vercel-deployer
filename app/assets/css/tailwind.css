@@ -4,41 +4,41 @@
 
 @layer base {
   :root {
-    --bg-page: #ffffff;
-    --bg-card: #f9f9fb;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
     --bg-card-modal: #ffffff;
     --bg-dropdown: #ffffff;
     --bg-input: #ffffff;
     --bg-button: #ffffff;
-    --bg-button-hover: #f4f4f5;
-    --bg-row-hover: #f9f9fb;
-    --border-primary: #e4e4e7;
-    --border-secondary: #f4f4f5;
-    --border-tertiary: #e4e4e7;
-    --border-focus: #a1a1aa;
-    --text-primary: #18181b;
-    --text-secondary: #71717a;
-    --text-tertiary: #a1a1aa;
-    --text-quaternary: #d4d4d8;
+    --bg-button-hover: #f1f5f9;
+    --bg-row-hover: #f8fafc;
+    --border-primary: #cbd5e1;
+    --border-secondary: #e2e8f0;
+    --border-tertiary: #cbd5e1;
+    --border-focus: #475569;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-tertiary: #475569;
+    --text-quaternary: #64748b;
 
-    --color-blue: #0070f3;
-    --color-blue-hover: #005cc5;
-    --color-blue-text: #0070f3;
-    --color-blue-bg: rgba(0, 112, 243, 0.05);
-    --color-blue-border: rgba(0, 112, 243, 0.15);
+    --color-blue: #2563eb;
+    --color-blue-hover: #1d4ed8;
+    --color-blue-text: #1d4ed8;
+    --color-blue-bg: rgba(37, 99, 235, 0.08);
+    --color-blue-border: rgba(37, 99, 235, 0.25);
 
-    --color-red: #e5484d;
-    --color-red-text: #e5484d;
-    --color-red-bg: rgba(229, 72, 77, 0.05);
-    --color-red-border: rgba(229, 72, 77, 0.15);
+    --color-red: #dc2626;
+    --color-red-text: #b91c1c;
+    --color-red-bg: rgba(220, 38, 38, 0.08);
+    --color-red-border: rgba(220, 38, 38, 0.25);
 
-    --color-orange-text: #d97706;
-    --color-orange-bg: rgba(255, 153, 10, 0.05);
-    --color-orange-border: rgba(255, 153, 10, 0.15);
+    --color-orange-text: #b45309;
+    --color-orange-bg: rgba(217, 119, 6, 0.08);
+    --color-orange-border: rgba(217, 119, 6, 0.25);
 
-    --color-green-text: #16a34a;
-    --color-green-bg: rgba(0, 201, 80, 0.05);
-    --color-green-border: rgba(0, 201, 80, 0.15);
+    --color-green-text: #15803d;
+    --color-green-bg: rgba(22, 163, 74, 0.08);
+    --color-green-border: rgba(22, 163, 74, 0.25);
   }
 
   .dark {

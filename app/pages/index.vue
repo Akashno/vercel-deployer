@@ -48,10 +48,15 @@ function getJiraUrl(branch: string | null): string | null {
 }
 
 const collapsed = ref((route.query.collapse as string) !== '0')
-const { data, pending, error, refresh } = await useFetch<Deployment[]>('/api/deployments', {
+interface DeploymentsResponse {
+  projectName: string
+  deployments: Deployment[]
+}
+const { data: resData, pending, error, refresh } = await useFetch<DeploymentsResponse>('/api/deployments', {
   query: { collapse: collapsed },
 })
-const { data: project } = await useFetch<{ name: string }>('/api/project')
+const data = computed(() => resData.value?.deployments ?? [])
+const project = computed(() => ({ name: resData.value?.projectName ?? '—' }))
 
 const openDropdown = ref<string | null>(null)
 const cancelling = ref<string | null>(null)
@@ -345,6 +350,12 @@ function isFdBusy(uid: string): boolean {
     <header class="flex items-center justify-between flex-wrap gap-4 mb-4">
       <div class="flex items-center gap-2.5">
         <div class="flex items-center gap-2">
+          <!-- Project Logo / Avatar -->
+          <div
+            class="w-6 h-6 rounded-md bg-gradient-to-br from-blue-main to-purple-600 flex items-center justify-center text-white text-[10px] font-bold uppercase tracking-wider shrink-0"
+          >
+            {{ project?.name ? project.name.slice(0, 2) : 'VP' }}
+          </div>
           <span class="text-[18px] font-semibold tracking-[-0.02em] text-text-primary">{{ project?.name ?? '—' }}</span>
         </div>
         <span v-if="data" class="bg-border-secondary border border-border-primary rounded-full text-text-secondary text-xs font-medium px-2 py-[1px]">

@@ -212,6 +212,12 @@ onMounted(() => {
       <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div class="flex items-center gap-3 flex-wrap">
           <DeploymentStatusBadge :state="data.state" />
+          <!-- Project Logo / Avatar -->
+          <div
+            class="w-6 h-6 rounded-md bg-gradient-to-br from-blue-main to-purple-600 flex items-center justify-center text-white text-[10px] font-bold uppercase tracking-wider shrink-0"
+          >
+            {{ data.name ? data.name.slice(0, 2) : 'VP' }}
+          </div>
           <h1 class="text-[20px] font-semibold tracking-[-0.02em] text-text-primary">{{ data.name }}</h1>
           <span v-if="data.target === 'production'" class="bg-blue-bg border border-blue-border rounded-[3px] text-blue-text text-[11px] tracking-[0.04em] px-1.5 py-[1.6px]">
             Production
