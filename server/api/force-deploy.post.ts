@@ -1,6 +1,7 @@
-import { defineEventHandler, readBody, createError } from 'h3'
+import { defineEventHandler, readBody, getCookie } from 'h3'
 import { githubApi } from '~~/server/utils/api'
 import { validateBranch } from '~~/server/utils/validation'
+import { AUTH_COOKIE } from '~~/server/utils/auth'
 
 interface GithubRefResponse {
   ref: string
@@ -26,6 +27,11 @@ export default defineEventHandler(async (event) => {
   const { branch } = await readBody<{ branch: string }>(event)
   validateBranch(branch)
 
+  // Parse logged-in user details from cookie
+  const cookieVal = getCookie(event, AUTH_COOKIE)
+  const separatorIndex = cookieVal ? cookieVal.indexOf(':') : -1
+  const loggedInEmail = separatorIndex !== -1 ? cookieVal.substring(0, separatorIndex) : 'unknown'
+
   // 1. Get the latest commit SHA of the branch
   const refData = await githubApi<GithubRefResponse>(`/git/ref/heads/${branch}`)
   const parentCommitSha = refData.object.sha
@@ -38,7 +44,7 @@ export default defineEventHandler(async (event) => {
   const newCommit = await githubApi<{ sha: string }>(`/git/commits`, {
     method: 'POST',
     body: {
-      message: 'chore: redeploy branch',
+      message: `chore: redeploy branch Triggered-By: ${loggedInEmail}`,
       tree: treeSha,
       parents: [parentCommitSha],
       author: {

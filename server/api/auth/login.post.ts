@@ -1,3 +1,5 @@
+import { makeToken, getTeamMembersMap, AUTH_COOKIE, AUTH_FLAG_COOKIE } from '../../utils/auth'
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { username, password } = body ?? {}
@@ -11,11 +13,31 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'Auth not configured on server' })
   }
 
-  if (!username || !password || username !== envUser || password !== envPass) {
+  let isValid = false
+  let tokenInputPassword = ''
+
+  if (username && password) {
+    // 1. Check if super-admin (from .env)
+    if (username === envUser && password === envPass) {
+      isValid = true
+      tokenInputPassword = envPass
+    } else {
+      // 2. Check if team member (from environment configuration)
+      const teamMembers = getTeamMembersMap(config.teamMembers)
+      const memberPassword = teamMembers[username.toLowerCase().trim()]
+      if (memberPassword && password === memberPassword) {
+        isValid = true
+        tokenInputPassword = memberPassword
+      }
+    }
+  }
+
+  if (!isValid) {
     throw createError({ statusCode: 401, message: 'Invalid credentials' })
   }
 
-  const token = await makeToken(username, password, secret)
+  // Generate the token
+  const token = await makeToken(username, tokenInputPassword, secret)
   const cookieOpts = {
     httpOnly: true,
     sameSite: 'strict' as const,

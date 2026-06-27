@@ -39,17 +39,30 @@ export default defineEventHandler(async (event) => {
       meta.bitbucketCommitSha ??
       null
 
-    const commitMessage =
+    const rawCommitMessage =
       meta.githubCommitMessage ??
       meta.gitlabCommitMessage ??
       meta.bitbucketCommitMessage ??
       null
+
+    const commitMessage = rawCommitMessage && rawCommitMessage.includes('Triggered-By:')
+      ? rawCommitMessage.split('Triggered-By:')[0].trim()
+      : rawCommitMessage
 
     const commitAuthor =
       meta.githubCommitAuthorLogin ??
       meta.gitlabCommitAuthorName ??
       meta.bitbucketCommitAuthorName ??
       null
+
+    let deployer: string | null = null
+    if (rawCommitMessage && rawCommitMessage.includes('Triggered-By:')) {
+      const parts = rawCommitMessage.split('Triggered-By:')
+      const email = parts[parts.length - 1].trim()
+      if (email) {
+        deployer = email
+      }
+    }
 
     const prId = meta.githubPrId ?? null
     const ghOrg = meta.githubOrg ?? null
@@ -68,6 +81,7 @@ export default defineEventHandler(async (event) => {
       commitSha: fullSha ? fullSha.slice(0, 7) : null,
       commitMessage,
       commitAuthor,
+      deployer,
       prUrl,
       prId,
     }

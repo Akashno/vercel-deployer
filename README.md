@@ -22,6 +22,7 @@ ticket context surfaced inline.
 - 🌿 Browse branches
 - 🔗 Inline GitHub PR links and Jira ticket links (auto-detected from branch names)
 - 🔐 Username/password auth in front of the whole dashboard
+- 👥 Team member credentials — generate individual credentials for team members directly from the dashboard
 
 ## How force-deploy works (bypassing Vercel's seat restriction)
 
@@ -95,9 +96,10 @@ cp .env.example .env
 | `VERCEL_TOKEN` | ✅ | Vercel API token ([create one](https://vercel.com/account/tokens)) |
 | `PROJECT_ID` | ✅ | The Vercel project ID to monitor |
 | `TEAM_ID` | ⬜ | Vercel team ID, if the project belongs to a team |
-| `AUTH_USERNAME` | ✅ | Username for dashboard login |
-| `AUTH_PASSWORD` | ✅ | Password for dashboard login |
+| `AUTH_USERNAME` | ✅ | Username for dashboard login (primary admin) |
+| `AUTH_PASSWORD` | ✅ | Password for dashboard login (primary admin) |
 | `AUTH_SECRET` | ✅ | Random secret used to sign the auth session |
+| `TEAM_MEMBERS` | ⬜ | Additional team member credentials (generated from the dashboard's Team Management panel) |
 | `GITHUB_TOKEN` | ⬜ | Fine-grained PAT with `Contents: read & write` (for force-deploy via API) |
 | `GITHUB_OWNER` | ⬜ | GitHub repo owner |
 | `GITHUB_REPO` | ⬜ | GitHub repo name |
