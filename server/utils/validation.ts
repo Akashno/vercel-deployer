@@ -3,7 +3,8 @@ import { createError } from 'h3'
 const VALID_NAME_RE = /^[a-zA-Z0-9_-]+$/
 const VALID_BRANCH_RE = /^[a-zA-Z0-9_./-]+$/
 const VALID_SHA_RE = /^[a-fA-F0-9]{7,40}$/
-const VALID_UID_RE = /^dep_[a-zA-Z0-9]+$/
+const VALID_UID_RE = /^dpl_[a-zA-Z0-9]+$/
+
 
 export function validateOwnerRepo(owner: any, repo: any) {
   if (owner && (typeof owner !== 'string' || !VALID_NAME_RE.test(owner))) {
