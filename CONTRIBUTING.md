@@ -1,7 +1,7 @@
 # Contributing
 
 Thanks for your interest in contributing! This project is a self-hosted Nuxt 4
-dashboard for viewing Vercel deployments. Contributions of all kinds are
+dashboard for viewing Vercel Deployer. Contributions of all kinds are
 welcome — bug reports, features, docs, and fixes.
 
 ## Getting set up

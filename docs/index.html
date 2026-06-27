@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vercel Deployer Viewer — Self-Hosted Vercel Dashboard</title>
+  <meta name="description"
+    content="A self-hosted dashboard for viewing and managing Vercel Deployer, inspecting build logs, and triggering force-rebuilds without Vercel paid seats.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet">
+
+  <style>
+    /* Reset & Base variables */
+    :root {
+      --bg-primary: #09090b;
+      --bg-secondary: #121215;
+      --bg-tertiary: #18181b;
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-tertiary: #71717a;
+      --text-quaternary: #52525b;
+      --border-primary: #27272a;
+      --border-secondary: #3f3f46;
+      --border-focus: #52525b;
+
+      --accent-blue: #2563eb;
+      --accent-blue-glow: rgba(37, 99, 235, 0.15);
+      --accent-purple: #8b5cf6;
+
+      --status-ready: #10b981;
+      --status-ready-bg: rgba(16, 185, 129, 0.12);
+      --status-ready-border: rgba(16, 185, 129, 0.25);
+
+      --status-building: #f59e0b;
+      --status-building-bg: rgba(245, 158, 11, 0.12);
+      --status-building-border: rgba(245, 158, 11, 0.25);
+
+      --status-error: #ef4444;
+      --status-error-bg: rgba(239, 68, 68, 0.12);
+      --status-error-border: rgba(239, 68, 68, 0.25);
+
+      --status-canceled: #a1a1aa;
+      --status-canceled-bg: rgba(161, 161, 170, 0.12);
+      --status-canceled-border: rgba(161, 161, 170, 0.25);
+
+      --status-blocked: #ef4444;
+      --status-blocked-bg: rgba(239, 68, 68, 0.1);
+      --status-blocked-border: rgba(239, 68, 68, 0.2);
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-display: 'Outfit', var(--font-sans);
+      --font-mono: 'Fira Code', 'SFMono-Regular', Consolas, Courier, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Selection & Scrollbar */
+    ::selection {
+      background: var(--accent-blue-glow);
+      color: #fff;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-primary);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-secondary);
+    }
+
+    /* Layout Utilities */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* Glow Effects */
+    .glow-blob {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-blue) 0%, transparent 70%);
+      opacity: 0.15;
+      filter: blur(80px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .glow-blob-purple {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+      opacity: 0.12;
+      filter: blur(100px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Navbar */
+    header {
+      border-bottom: 1px solid var(--border-primary);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background-color: rgba(9, 9, 11, 0.7);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 4.5rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      width: 2rem;
+      height: 2rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: #fff;
+    }
+
+    .btn-github {
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-github:hover {
+      background-color: var(--border-primary);
+      border-color: var(--border-secondary);
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      padding: 6rem 0 4rem 0;
+      text-align: center;
+    }
+
+    .badge-promo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--accent-blue-glow);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+      color: #93c5fd;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 2rem;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.15;
+      max-width: 800px;
+      margin: 0 auto 1.5rem auto;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 40%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fadeIn 1s ease-out;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, #3b82f6, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      max-width: 680px;
+      margin: 0 auto 2.5rem auto;
+      animation: fadeIn 1.2s ease-out;
+    }
+
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 4rem;
+      animation: fadeIn 1.4s ease-out;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-primary {
+      background-color: var(--text-primary);
+      color: var(--bg-primary);
+      border: 1px solid var(--text-primary);
+    }
+
+    .btn-primary:hover {
+      background-color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -10px rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: #fff;
+      border: 1px solid var(--border-primary);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-secondary);
+      border-color: var(--border-secondary);
+      transform: translateY(-2px);
+    }
+
+    /* Showcase Window */
+    .showcase-window {
+      border: 1px solid var(--border-primary);
+      background-color: var(--bg-secondary);
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(37, 99, 235, 0.08);
+      overflow: hidden;
+      margin: 0 auto;
+      max-width: 1000px;
+      text-align: left;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: 0.2s;
+    }
+
+    .window-header {
+      background-color: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-primary);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .dot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+    }
+
+    .dot-red {
+      background-color: #ef4444;
+    }
+
+    .dot-yellow {
+      background-color: #f59e0b;
+    }
+
+    .dot-green {
+      background-color: #10b981;
+    }
+
+    .window-title {
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+    }
+
+    .window-badge {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-primary);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .live-dot {
+      width: 5px;
+      height: 5px;
+      background-color: var(--status-ready);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Simulated Dashboard Content */
+    .dashboard {
+      padding: 1.5rem;
+      min-height: 480px;
+      position: relative;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 1.5rem;
+    }
+
+    .dash-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .dash-filters {
+      display: flex;
+      gap: 0.75rem;
+      flex-grow: 1;
+      max-width: 600px;
+    }
+
+    .dash-search-container {
+      position: relative;
+      flex-grow: 1;
+    }
+
+    .dash-search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      color: var(--text-tertiary);
+    }
+
+    .dash-search {
+      width: 100%;
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+      color: #fff;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .dash-search:focus {
+      border-color: var(--border-secondary);
+    }
+
+    .dash-select {
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      border-radius: 6px;
+      padding: 0.5rem 1.5rem 0.5rem 0.75rem;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2371717a'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+      background-size: 0.85rem;
+    }
+
+    .dash-btn-primary {
+      background-color: var(--accent-blue);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background-color 0.2s;
+    }
+
+    .dash-btn-primary:hover {
+      background-color: #3b82f6;
+    }
+
+    .dash-table-wrapper {
+      border: 1px solid var(--border-primary);
+      border-radius: 8px;
+      background-color: rgba(9, 9, 11, 0.3);
+      overflow-x: auto;
+    }
+
+    .dash-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    .dash-table th {
+      background-color: rgba(24, 24, 27, 0.5);
+      padding: 0.75rem 1rem;
+      color: var(--text-tertiary);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-primary);
+    }
+
+    .dash-table tr {
+      border-bottom: 1px solid var(--border-primary);
+      transition: background-color 0.15s;
+    }
+
+    .dash-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .dash-table tr:hover {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .dash-table tr.active-row {
+      background-color: rgba(37, 99, 235, 0.05);
+    }
+
+    .dash-table td {
+      padding: 0.9rem 1rem;
+      vertical-align: middle;
+    }
+
+    .branch-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .branch-name {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .commit-message {
+      color: var(--text-tertiary);
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 250px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .status-ready-badge {
+      background-color: var(--status-ready-bg);
+      border: 1px solid var(--status-ready-border);
+      color: var(--status-ready);
+    }
+
+    .status-building-badge {
+      background-color: var(--status-building-bg);
+      border: 1px solid var(--status-building-border);
+      color: var(--status-building);
+    }
+
+    .status-canceled-badge {
+      background-color: var(--status-canceled-bg);
+      border: 1px solid var(--status-canceled-border);
+      color: var(--status-canceled);
+    }
+
+    .status-blocked-badge {
+      background-color: var(--status-blocked-bg);
+      border: 1px solid var(--status-blocked-border);
+      color: var(--status-blocked);
+    }
+
+    .status-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    .status-building-badge .status-badge-dot {
+      animation: pulse 1.2s infinite;
+    }
+
+    .target-badge {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      background-color: rgba(37, 99, 235, 0.1);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      color: #93c5fd;
+      margin-left: 0.5rem;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .link-icons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .link-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.35rem;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .link-badge-pr {
+      background-color: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      color: #c084fc;
+    }
+
+    .link-badge-jira {
+      background-color: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      color: #60a5fa;
+    }
+
+    .sim-actions-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sim-btn-deploy {
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      color: var(--text-secondary);
+      padding: 0.35rem 0.65rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+
+    .sim-btn-deploy:hover:not(:disabled) {
+      background-color: var(--border-primary);
+      color: #fff;
+      border-color: var(--border-secondary);
+    }
+
+    .sim-btn-deploy:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .sim-dropdown-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .sim-dropdown-btn {
+      background-color: transparent;
+      border: 1px solid transparent;
+      color: var(--text-quaternary);
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sim-dropdown-btn:hover,
+    .sim-dropdown-btn.active {
+      background-color: var(--bg-tertiary);
+      border-color: var(--border-primary);
+      color: var(--text-secondary);
+    }
+
+    .sim-dropdown-panel {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 0.25rem;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      padding: 0.25rem;
+      z-index: 30;
+      width: 130px;
+      gap: 0.15rem;
+    }
+
+    .sim-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .sim-dropdown-item:hover {
+      background-color: var(--bg-tertiary);
+      color: #fff;
+    }
+
+    .sim-dropdown-item.disabled {
+      opacity: 0.35;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* Drawer / Log Panel */
+    .drawer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 440px;
+      background-color: var(--bg-secondary);
+      border-left: 1px solid var(--border-primary);
+      box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 10;
+    }
+
+    .drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-tertiary);
+    }
+
+    .drawer-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .drawer-close {
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drawer-close:hover {
+      color: #fff;
+    }
+    /* Modal Form for Branch Deploy */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(9, 9, 11, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 20;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: 10px;
+      width: 380px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-overlay.open .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-primary);
+      font-weight: 600;
+      font-size: 0.95rem;
+      background-color: var(--bg-tertiary);
+    }
+
+    .modal-body {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .modal-footer {
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border-primary);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      background-color: var(--bg-tertiary);
+    }
+
+    /* Animation Step Visualizer */
+    .workflow-flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 1.5rem 0;
+      padding: 1rem 0.5rem;
+      position: relative;
+      background-color: var(--bg-tertiary);
+      border-radius: 8px;
+      border: 1px dashed var(--border-primary);
+    }
+
+    .flow-line {
+      position: absolute;
+      top: 50%;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background-color: var(--border-primary);
+      z-index: 1;
+      transform: translateY(-50%);
+    }
+
+    .flow-line-progress {
+      position: absolute;
+      top: 50%;
+      left: 10%;
+      width: 0%;
+      height: 2px;
+      background: linear-gradient(to right, var(--accent-blue), var(--accent-purple));
+      z-index: 1;
+      transform: translateY(-50%);
+      transition: width 4s linear;
+    }
+
+    .flow-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 2;
+      width: 30%;
+      text-align: center;
+    }
+
+    .node-circle {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      background-color: var(--bg-secondary);
+      border: 2px solid var(--border-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--text-tertiary);
+      transition: all 0.3s;
+    }
+
+    .flow-node.active .node-circle {
+      border-color: var(--accent-blue);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+      background-color: var(--accent-blue-glow);
+    }
+
+    .flow-node.completed .node-circle {
+      border-color: var(--status-ready);
+      color: #fff;
+      background-color: var(--status-ready-bg);
+    }
+
+    .node-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+
+    .flow-node.active .node-label {
+      color: #fff;
+    }
+
+    /* Core Features Grid Section */
+    .features-section {
+      padding: 6rem 0;
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-primary);
+      border-bottom: 1px solid var(--border-primary);
+      position: relative;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 2.25rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 1rem;
+      letter-spacing: -0.01em;
+    }
+
+    .section-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 4rem auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-primary);
+      padding: 2.25rem 2rem;
+      border-radius: 10px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-secondary);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.4);
+    }
+
+    .feature-icon-wrapper {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      color: #60a5fa;
+    }
+
+    .feature-card:hover .feature-icon-wrapper {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      border-color: transparent;
+    }
+
+    .feature-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+
+    .feature-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    /* Diagram Section (How it Works) */
+    .how-it-works-section {
+      padding: 6rem 0;
+      position: relative;
+    }
+
+    .comparison-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      max-width: 900px;
+      margin: 0 auto 4rem auto;
+    }
+
+    @media (max-width: 768px) {
+      .comparison-wrapper {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .comp-card {
+      border: 1px solid var(--border-primary);
+      border-radius: 10px;
+      padding: 2rem;
+      background-color: var(--bg-secondary);
+    }
+
+    .comp-card.comp-bad {
+      border-top: 3px solid var(--status-error);
+    }
+
+    .comp-card.comp-good {
+      border-top: 3px solid var(--status-ready);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.02) 0%, var(--bg-secondary) 100%);
+    }
+
+    .comp-header {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .comp-header svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .comp-item {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .comp-item svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      margin-top: 0.2rem;
+    }
+
+    .comp-item-bad svg {
+      color: var(--status-error);
+    }
+
+    .comp-item-good svg {
+      color: var(--status-ready);
+    }
+
+    .comp-title {
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .comp-desc {
+      color: var(--text-secondary);
+      margin-top: 0.15rem;
+    }
+
+    /* Code & Setup Guide Section */
+    .setup-section {
+      padding: 6rem 0;
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-primary);
+    }
+
+    .setup-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 4rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .setup-layout {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+    }
+
+    .setup-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .step {
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .step-number {
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #60a5fa;
+      flex-shrink: 0;
+      font-size: 0.95rem;
+    }
+
+    .step-content h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+
+    .step-content p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .code-tabs {
+      border: 1px solid var(--border-primary);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .tabs-header {
+      background-color: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-primary);
+      display: flex;
+      padding: 0 0.5rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      color: #60a5fa;
+      border-bottom-color: #3b82f6;
+    }
+
+    .code-container {
+      background-color: #050507;
+      padding: 1.25rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.6;
+    }
+
+    .code-line {
+      display: block;
+      min-height: 1.25rem;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-primary);
+      padding: 3rem 0;
+      color: var(--text-tertiary);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.92);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    /* Media Queries for Responsiveness */
+    @media (max-width: 640px) {
+      .hero-title {
+        font-size: 2.5rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .dash-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .dash-filters {
+        flex-direction: column;
+      }
+
+      .drawer {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Background Glowing Circles -->
+  <div class="glow-blob" style="top: 100px; left: 10%;"></div>
+  <div class="glow-blob-purple" style="top: 400px; right: 5%;"></div>
+  <div class="glow-blob" style="bottom: 200px; left: 20%;"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-container">
+      <a href="#" class="logo">
+        <div class="logo-icon">V</div>
+        <span>Vercel Deployer</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#simulator" class="nav-link">Live Simulator</a>
+        <a href="#how-it-works" class="nav-link">How it Works</a>
+        <a href="#setup" class="nav-link">Setup</a>
+        <a href="https://github.com/Akashno/vercel-deployments" target="_blank" rel="noopener noreferrer"
+          class="btn-github">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8" />
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="container hero">
+    <div class="badge-promo">
+      <span>🎉</span> Free &amp; Self-Hosted Dashboard for Teams
+    </div>
+    <h1 class="hero-title">
+      Share Vercel Deployer with your entire team — <span>No Paid Seats</span>
+    </h1>
+    <p class="hero-subtitle">
+      Give project managers, QA engineers, designers, and clients full control. Let them watch builds, browse branches,
+      stream logs, and trigger redeploys securely.
+    </p>
+    <div class="hero-ctas">
+      <a href="#setup" class="btn btn-primary">Get Started Now</a>
+      <a href="#simulator" class="btn btn-secondary">Try Live Simulator</a>
+    </div>
+  </section>
+
+  <!-- Live Simulator Section -->
+  <section class="container" id="simulator" style="padding-bottom: 6rem;">
+    <div class="showcase-window">
+      <!-- Simulated Title Bar -->
+      <div class="window-header">
+        <div class="window-controls">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="window-title">Vercel Deployer VIEWER — SIMULATOR</div>
+        <div class="window-badge">
+          <div class="live-dot"></div>
+          <span>Demo Dashboard</span>
+        </div>
+      </div>
+
+      <!-- Inside Browser Frame -->
+      <div class="dashboard" id="dashboard">
+        <!-- Toolbar -->
+        <div class="dash-toolbar">
+          <div class="dash-filters">
+            <div class="dash-search-container">
+              <svg class="dash-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input type="text" class="dash-search" id="sim-search" placeholder="Search branch, commit, author..."
+                oninput="filterDeployments()">
+            </div>
+
+            <select class="dash-select" id="sim-filter-status" onchange="filterDeployments()">
+              <option value="">All statuses</option>
+              <option value="READY">Ready</option>
+              <option value="BUILDING">Building</option>
+              <option value="CANCELED">Canceled</option>
+            </select>
+          </div>
+
+          <button class="dash-btn-primary" onclick="openDeployModal()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            Deploy a Branch
+          </button>
+        </div>
+
+        <!-- Table -->
+        <div class="dash-table-wrapper">
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>Branch / Commit</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Author</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sim-table-body">
+              <!-- Rendered via JS -->
+             </tbody>
+          </table>
+        </div>
+
+        <!-- Detail Drawer (Slide-out) -->
+        <div class="drawer" id="detail-drawer">
+          <div class="drawer-header">
+            <span class="drawer-title" id="detail-drawer-title">Inspect Deployment</span>
+            <button class="drawer-close" onclick="closeDetailDrawer()">✕</button>
+          </div>
+          
+          <div class="drawer-body" style="padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem;">
+            <!-- Header Info -->
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span id="detail-status-badge" class="status-badge"></span>
+                <span id="detail-branch-title" style="font-weight: 600; color: #fff; font-size: 0.95rem; font-family: var(--font-mono);"></span>
+              </div>
+              <a id="detail-preview-btn" href="#" target="_blank" rel="noopener" class="sim-btn-deploy" style="background-color: var(--accent-blue); border-color: var(--accent-blue); color: #fff; text-decoration: none; padding: 0.35rem 0.65rem; border-radius: 4px;">
+                Preview URL ↗
+              </a>
+            </div>
+
+            <!-- Meta Strip -->
+            <div style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.8rem;">
+              <div class="meta-row" style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--text-tertiary);">Preview URL</span>
+                <a id="detail-url-link" href="#" target="_blank" rel="noopener" style="font-family: var(--font-mono); color: #fff; text-decoration: none; word-break: break-all; max-width: 250px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></a>
+              </div>
+              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                <span style="color: var(--text-tertiary);">Commit ID</span>
+                <span id="detail-commit-sha" style="font-family: var(--font-mono); color: var(--text-secondary);"></span>
+              </div>
+              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                <span style="color: var(--text-tertiary);">Author</span>
+                <span id="detail-commit-author" style="color: var(--text-secondary);"></span>
+              </div>
+              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                <span style="color: var(--text-tertiary);">Commit Msg</span>
+                <span id="detail-commit-msg" style="color: var(--text-secondary); text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+              </div>
+            </div>
+
+            <!-- Integrations Section -->
+            <div id="detail-integrations-container" style="display: flex; flex-direction: column; gap: 1rem;">
+              <!-- GitHub Card -->
+              <div id="detail-github-card" style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="color: var(--text-tertiary);"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
+                  <span style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">GitHub Pull Request</span>
+                </div>
+                <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="color: var(--text-tertiary); width: 60px;">Status</span>
+                    <span id="detail-pr-status" class="status-badge" style="text-transform: uppercase;"></span>
+                  </div>
+                  <div style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                    <span style="color: var(--text-tertiary); width: 60px; shrink-0;">PR</span>
+                    <a id="detail-pr-link" href="#" target="_blank" rel="noopener" style="color: #60a5fa; text-decoration: none; hover:underline;"></a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Jira Card -->
+              <div id="detail-jira-card" style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="color: var(--text-tertiary);"><path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM9 12.5H4v-1h5v1zm3-3H4v-1h8v1zm0-3H4v-1h8v1z"/></svg>
+                  <span style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">Jira Issue</span>
+                </div>
+                <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="color: var(--text-tertiary); width: 60px;">Status</span>
+                    <span id="detail-jira-status" class="status-badge" style="text-transform: uppercase;"></span>
+                  </div>
+                  <div style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                    <span style="color: var(--text-tertiary); width: 60px; shrink-0;">Issue</span>
+                    <span style="color: var(--text-secondary);">
+                      <a id="detail-jira-link" href="#" target="_blank" rel="noopener" style="color: #60a5fa; font-family: var(--font-mono); font-weight: 600; text-decoration: none; margin-right: 0.35rem;"></a>
+                      <span id="detail-jira-summary" style="word-break: break-all; color: var(--text-secondary);"></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Deploy Modal Overlay -->
+        <div class="modal-overlay" id="deploy-modal-overlay">
+          <div class="modal">
+            <div class="modal-header">Trigger Force Deployment</div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label class="form-label" for="modal-branch-select">Select Target Branch</label>
+                <select class="dash-select" id="modal-branch-select"
+                  style="width: 100%; background-position: right 0.75rem center;">
+                  <option value="bugfix/logs-scroll">bugfix/logs-scroll (Blocked)</option>
+                  <option value="feature/auth-page">feature/auth-page (Blocked)</option>
+                  <option value="docs/update-readme">docs/update-readme (Blocked)</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer" id="modal-footer-actions">
+              <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"
+                onclick="closeDeployModal()">Cancel</button>
+              <button class="btn btn-primary"
+                style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color:#3b82f6; border-color:#3b82f6; color:#fff;"
+                onclick="triggerForceDeploy()">Trigger Deploy</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features Grid -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <h2 class="section-title">Everything you need, built for teams</h2>
+      <p class="section-subtitle">A lightweight, high-performance portal designed to bridge the gap between your
+        development tools and non-technical stakeholders.</p>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </div>
+          <h3 class="feature-title">Seat-Free Force Redeploys</h3>
+          <p class="feature-desc">Redeploy any branch without paying for extra Vercel team seats. Bypasses limitations
+            securely via GitHub's low-level Git API.</p>
+        </div>
+        <!-- Feature 2 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 class="feature-title">Real-Time Build Logs</h3>
+          <p class="feature-desc">Watch standard output and build steps in real-time as they stream from Vercel's logs,
+            letting QA identify compile errors instantly.</p>
+        </div>
+        <!-- Feature 3 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+          </div>
+          <h3 class="feature-title">PR &amp; Jira Integrations</h3>
+          <p class="feature-desc">Automatically parses branch names (matching your Jira issue key like <code>PROJ-123</code>) to surface links to active GitHub Pull Requests and Jira tickets right in the deployment listing.</p>
+        </div>
+        <!-- Feature 4 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h3 class="feature-title">Protected Behind Simple Auth</h3>
+          <p class="feature-desc">Protect your project with absolute privacy. Built-in basic session authentication
+            ensures only authorized personnel can access details.</p>
+        </div>
+        <!-- Feature 5 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          </div>
+          <h3 class="feature-title">Cancel Active Builds</h3>
+          <p class="feature-desc">Cancel stuck runs or unneeded branch deployments directly with a single click, saving
+            Vercel build minutes effortlessly.</p>
+        </div>
+        <!-- Feature 6 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </div>
+          <h3 class="feature-title">Fast Searching &amp; Filters</h3>
+          <p class="feature-desc">Find what you need in seconds with interactive client-side queries across branches,
+            commit messages, and deployment authors.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works comparison -->
+  <section class="how-it-works-section" id="how-it-works">
+    <div class="container">
+      <h2 class="section-title">The Vercel Paid-Seat Restriction</h2>
+      <p class="section-subtitle">Vercel blocks non-paid team seats from triggering branch rebuilds or logging in. Here
+        is how we bypass it cleanly.</p>
+
+      <div class="comparison-wrapper">
+        <!-- Bad way -->
+        <div class="comp-card comp-bad">
+          <div class="comp-header">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span>The Vercel Way</span>
+          </div>
+          <div class="comp-item comp-item-bad">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <div class="comp-title">Requires Paid Vercel Seats</div>
+              <div class="comp-desc">Every PM, QA engineer, designer, or client needs a Vercel license ($20+/month per
+                user) just to trigger redeploys.</div>
+            </div>
+          </div>
+          <div class="comp-item comp-item-bad">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <div class="comp-title">Direct Account Access</div>
+              <div class="comp-desc">Sharing access requires exposing core Vercel platform configurations, which poses
+                billing and security risks.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Good way -->
+        <div class="comp-card comp-good">
+          <div class="comp-header">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>The Empty Commit Bypass</span>
+          </div>
+          <div class="comp-item comp-item-good">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div class="comp-title">Free Self-Hosted Dashboard</div>
+              <div class="comp-desc">Bypasses seats by programmatically committing/pushing a safe, empty commit tree
+                directly using GitHub Git Data APIs.</div>
+            </div>
+          </div>
+          <div class="comp-item comp-item-good">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div class="comp-title">Clean History, No workflows</div>
+              <div class="comp-desc">Uses <code>git commit --allow-empty</code> which modifies 0 lines, keeping history
+                tidy. No repo actions or workflows required.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Setup / Code Guide Section -->
+  <section class="setup-section" id="setup">
+    <div class="container setup-layout">
+
+      <!-- Steps Text -->
+      <div class="setup-steps">
+        <h2 class="section-title" style="text-align: left; margin-bottom: 0.5rem;">Quick Self-Hosting Guide</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">Deploy this dashboard
+          locally or to any hosting service supporting Node/Docker in less than 5 minutes.</p>
+
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Clone the Repository</h3>
+            <p>Clone the project repository to your local system or deployment server, and run package installations.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Configure Environment</h3>
+            <p>Create a <code>.env</code> file based on <code>.env.example</code>. Set up Vercel keys and optional
+              GitHub token parameters.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Launch Dashboard</h3>
+            <p>Start the developer server with <code>npm run dev</code> or build production outputs using Nuxt Nitro
+              bundling commands.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabbed Code Box -->
+      <div class="code-tabs">
+        <div class="tabs-header">
+          <button class="tab-btn active" onclick="switchTab(event, 'tab-install')">Install</button>
+          <button class="tab-btn" onclick="switchTab(event, 'tab-config')">Configure (.env)</button>
+          <button class="tab-btn" onclick="switchTab(event, 'tab-run')">Run</button>
+        </div>
+
+        <div class="code-container">
+          <!-- Install Panel -->
+          <div class="tab-panel active" id="tab-install">
+            <div class="code-line"><span style="color:#71717a"># Clone the repository</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">git clone
+                https://github.com/Akashno/vercel-deployments.git</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Change directory</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">cd vercel-deployments</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Install Node modules</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">npm install</span></div>
+          </div>
+
+          <!-- Config Panel -->
+          <div class="tab-panel" id="tab-config">
+            <div class="code-line"><span style="color:#71717a"># Vercel Configuration</span></div>
+            <div class="code-line"><span style="color:#60a5fa">VERCEL_TOKEN</span>=<span
+                style="color:#a855f7">"vcl_token_here"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">PROJECT_ID</span>=<span
+                style="color:#a855f7">"prj_projectIdHere"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">TEAM_ID</span>=<span style="color:#a855f7">""</span>
+              <span style="color:#71717a"># Required only if project is in a team</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Dashboard Authentication</span></div>
+            <div class="code-line"><span style="color:#60a5fa">AUTH_USERNAME</span>=<span
+                style="color:#a855f7">"admin"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">AUTH_PASSWORD</span>=<span
+                style="color:#a855f7">"dashboardPass123"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">AUTH_SECRET</span>=<span
+                style="color:#a855f7">"d485e982ca8586cfb9a9108b98124efac6b27"</span> <span style="color:#71717a">#
+                32-character hex key</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># GitHub Integration (For deploying without paid
+                seat)</span></div>
+            <div class="code-line"><span style="color:#60a5fa">GITHUB_TOKEN</span>=<span
+                style="color:#a855f7">"github_pat_with_contents_write"</span> <span style="color:#71717a"># Fine-grained
+                PAT (Contents: read/write)</span></div>
+            <div class="code-line"><span style="color:#60a5fa">GITHUB_OWNER</span>=<span
+                style="color:#a855f7">"Akashno"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">GITHUB_REPO</span>=<span
+                style="color:#a855f7">"vercel-deployments"</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Jira Integration (Optional)</span></div>
+            <div class="code-line"><span style="color:#60a5fa">JIRA_ORG</span>=<span style="color:#a855f7">"acme"</span>
+            </div>
+            <div class="code-line"><span style="color:#60a5fa">JIRA_EMAIL</span>=<span
+                style="color:#a855f7">"user@company.com"</span></div>
+            <div class="code-line"><span style="color:#60a5fa">JIRA_API_TOKEN</span>=<span
+                style="color:#a855f7">"jira_token_here"</span></div>
+          </div>
+
+          <!-- Run Panel -->
+          <div class="tab-panel" id="tab-run">
+            <div class="code-line"><span style="color:#71717a"># Start dev environment (runs on port 3000)</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">npm run dev</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Build for production distribution bundle</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">npm run build</span></div>
+            <div class="code-line"></div>
+            <div class="code-line"><span style="color:#71717a"># Run local preview server</span></div>
+            <div class="code-line"><span style="color:#f4f4f5">npm run preview</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#simulator" class="nav-link">Live Simulator</a>
+        <a href="#setup" class="nav-link">Setup</a>
+        <a href="https://github.com/Akashno/vercel-deployments" class="nav-link" target="_blank"
+          rel="noopener noreferrer">GitHub Project</a>
+      </div>
+      <p>&copy; 2026 Vercel Deployer Viewer. Released under the MIT License.</p>
+    </div>
+  </footer>
+
+  <!-- Simulation JS Logic -->
+  <script>
+    // Mock database state
+    const DEPLOYMENTS_DB = [
+      {
+        uid: 'dep_7y8x9w0v1u2t',
+        branch: 'main',
+        commitSha: '7a3c2b1f8e9d0c2',
+        commitMessage: 'chore: manual empty commit',
+        commitAuthor: 'github-actions[bot]',
+        state: 'READY',
+        createdAt: Date.now() - 3600000 * 2, // 2 hrs ago
+        target: 'production',
+        prId: null,
+        jiraId: null,
+        logs: [
+          { time: '12:15:00', text: 'Cloning repository github.com/Akashno/vercel-deployments...', type: 'info' },
+          { time: '12:15:02', text: 'Installing dependencies with npm ci...', type: 'info' },
+          { time: '12:15:20', text: 'Build started: nuxt build', type: 'info' },
+          { time: '12:15:35', text: 'Code compiled successfully.', type: 'success' },
+          { time: '12:15:36', text: 'Server bundle generated (2.1 MB).', type: 'success' },
+          { time: '12:15:38', text: 'Uploading build outputs to Vercel...', type: 'info' },
+          { time: '12:15:40', text: 'Deployment is live! URL: https://vercel-deployments-main.vercel.app', type: 'success' }
+        ]
+      },
+      {
+        uid: 'dep_1a2b3c4d5e6f',
+        branch: 'feature/auth-page',
+        commitSha: '8f9b4c2a1e3d5f6',
+        commitMessage: 'feat: add oauth provider login',
+        commitAuthor: 'developer-alex',
+        state: 'BLOCKED',
+        createdAt: Date.now() - 3600000 * 1, // 1 hr ago
+        target: null,
+        prId: '42',
+        jiraId: 'PROJ-101',
+        logs: [
+          { time: '13:30:15', text: 'Deployment BLOCKED.', type: 'error' },
+          { time: '13:30:16', text: 'Error: Only paid Vercel team members can deploy branches on this project.', type: 'error' },
+          { time: '13:30:16', text: 'To enable this branch, use the Force-Deploy action to bypass the restriction securely.', type: 'info' }
+        ]
+      },
+      {
+        uid: 'dep_9z8y7x6w5v4u',
+        branch: 'bugfix/logs-scroll',
+        commitSha: '3e5d7f1c9b8a2d3',
+        commitMessage: 'fix: scroll to bottom in logs stream',
+        commitAuthor: 'designer-jane',
+        state: 'BLOCKED',
+        createdAt: Date.now() - 3600000 * 24, // 1 day ago
+        target: null,
+        prId: '41',
+        jiraId: 'PROJ-94',
+        logs: [
+          { time: '13:04:12', text: 'Deployment BLOCKED.', type: 'error' },
+          { time: '13:04:13', text: 'Error: Only paid Vercel team members can deploy branches on this project.', type: 'error' }
+        ]
+      },
+      {
+        uid: 'dep_5t6r7e8w9q0p',
+        branch: 'docs/update-readme',
+        commitSha: '1a2b3c4d5e6f7g8',
+        commitMessage: 'docs: update self-hosting guide',
+        commitAuthor: 'writer-mark',
+        state: 'BLOCKED',
+        createdAt: Date.now() - 3600000 * 48, // 2 days ago
+        target: null,
+        prId: null,
+        jiraId: null,
+        logs: [
+          { time: '11:00:10', text: 'Deployment BLOCKED.', type: 'error' },
+          { time: '11:00:11', text: 'Error: Only paid Vercel team members can deploy branches on this project.', type: 'error' }
+        ]
+      }
+    ];
+
+    let currentSelectedUid = null;
+    let isCurrentlyDeployingAnimation = false;
+    let openDropdownUid = null;
+
+    // Build Time format helpers
+    function relativeTime(ts) {
+      const diffSec = (ts - Date.now()) / 1000;
+      const abs = Math.abs(diffSec);
+      if (abs < 60) return 'just now';
+      if (abs < 3600) return `${Math.round(abs / 60)}m ago`;
+      if (abs < 86400) return `${Math.round(abs / 3600)}h ago`;
+      return `${Math.round(abs / 86400)}d ago`;
+    }
+
+    function toggleDropdown(event, uid) {
+      event.stopPropagation();
+      openDropdownUid = openDropdownUid === uid ? null : uid;
+      renderTable();
+    }
+
+    // Render Table
+    function renderTable() {
+      const query = document.getElementById('sim-search').value.toLowerCase().trim();
+      const statusFilter = document.getElementById('sim-filter-status').value;
+      const tbody = document.getElementById('sim-table-body');
+      tbody.innerHTML = '';
+
+      DEPLOYMENTS_DB.forEach(d => {
+        // Filters
+        if (statusFilter && d.state !== statusFilter) return;
+        if (query && !d.branch.toLowerCase().includes(query) && !d.commitMessage.toLowerCase().includes(query) && !d.commitAuthor.toLowerCase().includes(query)) return;
+
+        const tr = document.createElement('tr');
+        tr.ondblclick = () => openDetailDrawer(d.uid);
+        tr.title = "Double-click to inspect deployment details";
+
+        // Status Badge class
+        let badgeClass = 'status-ready-badge';
+        if (d.state === 'BUILDING') badgeClass = 'status-building-badge';
+        if (d.state === 'CANCELED') badgeClass = 'status-canceled-badge';
+        if (d.state === 'BLOCKED') badgeClass = 'status-blocked-badge';
+        if (d.state === 'ERROR') badgeClass = 'status-error-badge';
+
+        // Deploy Button
+        let deployButtonHtml = '';
+        if (d.state === 'BUILDING') {
+          deployButtonHtml = `
+            <button class="sim-btn-deploy" disabled style="opacity: 0.6;">
+              <svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.25"></circle>
+                <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+              </svg>
+              <span>Deploying</span>
+            </button>
+          `;
+        } else {
+          deployButtonHtml = `
+            <button class="sim-btn-deploy" onclick="event.stopPropagation(); triggerDeployDirectly('${d.branch}')" title="Deploy ${d.branch}">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              <span>Deploy</span>
+            </button>
+          `;
+        }
+
+        // PR and Jira elements in Dropdown
+        let dropdownHtml = '';
+        if (openDropdownUid === d.uid) {
+          const prLink = d.prId ? `https://github.com/Akashno/vercel-deployments/pull/${d.prId}` : '#';
+          const prClass = d.prId ? 'sim-dropdown-item' : 'sim-dropdown-item disabled';
+          const prText = d.prId ? `PR #${d.prId}` : 'No PR linked';
+
+          const jiraTicket = d.jiraId;
+          const jiraLink = jiraTicket ? `https://akashno.atlassian.net/browse/${jiraTicket}` : '#';
+          const jiraClass = jiraTicket ? 'sim-dropdown-item' : 'sim-dropdown-item disabled';
+          const jiraText = jiraTicket ? jiraTicket : 'No Jira ticket';
+
+          dropdownHtml = `
+            <div class="sim-dropdown-panel" onclick="event.stopPropagation()">
+              <a href="#" class="sim-dropdown-item" onclick="openDropdownUid = null; renderTable(); openDetailDrawer('${d.uid}'); event.preventDefault();">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <span>View Details</span>
+              </a>
+              <a href="${prLink}" target="_blank" rel="noopener noreferrer" class="${prClass}" onclick="openDropdownUid = null; renderTable();">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+                </svg>
+                <span>${prText}</span>
+              </a>
+              <a href="${jiraLink}" target="_blank" rel="noopener noreferrer" class="${jiraClass}" onclick="openDropdownUid = null; renderTable();">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color: #2684FF; fill: currentColor;">
+                  <path d="M11.53 2C11.53 2 11.83 3.65 10.3 5.17L2.14 13.34C0.65 14.83 0.65 17.22 2.14 18.71L5.29 21.86C6.78 23.35 9.17 23.35 10.66 21.86L18.83 13.69C20.35 12.16 22 12.47 22 12.47L20.25 10.72L18.8 9.27L11.53 2Z"/>
+                  <path d="M22 12.47V21.1C22 21.6 21.6 22 21.1 22H12.47L22 12.47Z" opacity="0.8"/>
+                </svg>
+                <span>${jiraText}</span>
+              </a>
+            </div>
+          `;
+        }
+
+        tr.innerHTML = `
+          <td>
+            <div class="branch-cell">
+              <div>
+                <span class="branch-name">${d.branch}</span>
+                ${d.target === 'production' ? '<span class="target-badge">Production</span>' : ''}
+              </div>
+              <span class="commit-message"><code style="font-family:var(--font-mono); color:var(--text-secondary); background:rgba(255,255,255,0.04); padding:0.15rem 0.3rem; border-radius:3px; font-size:0.75rem; margin-right:0.4rem;">${d.commitSha.slice(0, 7)}</code>${d.commitMessage}</span>
+            </div>
+          </td>
+          <td>
+            <span class="status-badge ${badgeClass}">
+              <span class="status-badge-dot"></span>
+              <span>${d.state}</span>
+            </span>
+          </td>
+          <td style="color: var(--text-secondary)">${relativeTime(d.createdAt)}</td>
+          <td style="color: var(--text-secondary)">${d.commitAuthor}</td>
+          <td onclick="event.stopPropagation()">
+            <div class="sim-actions-cell">
+              ${deployButtonHtml}
+              <div class="sim-dropdown-container">
+                <button class="sim-dropdown-btn ${openDropdownUid === d.uid ? 'active' : ''}" onclick="toggleDropdown(event, '${d.uid}')">
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                  </svg>
+                </button>
+                ${dropdownHtml}
+              </div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openDetailDrawer(uid) {
+      const d = DEPLOYMENTS_DB.find(x => x.uid === uid);
+      if (!d) return;
+
+      // Populate elements
+      document.getElementById('detail-drawer-title').textContent = `Inspect: ${d.branch}`;
+      
+      // Status Badge
+      const statusBadge = document.getElementById('detail-status-badge');
+      statusBadge.textContent = d.state;
+      // Reset classes
+      statusBadge.className = 'status-badge';
+      if (d.state === 'READY') statusBadge.classList.add('status-ready-badge');
+      else if (d.state === 'BUILDING') statusBadge.classList.add('status-building-badge');
+      else if (d.state === 'CANCELED') statusBadge.classList.add('status-canceled-badge');
+      else if (d.state === 'BLOCKED') statusBadge.classList.add('status-blocked-badge');
+      else if (d.state === 'ERROR') statusBadge.classList.add('status-error-badge');
+
+      document.getElementById('detail-branch-title').textContent = d.branch;
+      
+      // Preview URL links
+      const previewUrl = `vercel-deployments-${d.commitSha ? d.commitSha.slice(0, 7) : 'branch'}.vercel.app`;
+      const previewBtn = document.getElementById('detail-preview-btn');
+      previewBtn.href = `https://${previewUrl}`;
+      if (d.state !== 'READY') {
+        previewBtn.style.opacity = '0.5';
+        previewBtn.style.pointerEvents = 'none';
+      } else {
+        previewBtn.style.opacity = '1';
+        previewBtn.style.pointerEvents = 'auto';
+      }
+
+      document.getElementById('detail-url-link').href = `https://${previewUrl}`;
+      document.getElementById('detail-url-link').textContent = previewUrl;
+      document.getElementById('detail-commit-sha').textContent = d.commitSha.slice(0, 7);
+      document.getElementById('detail-commit-author').textContent = d.commitAuthor;
+      document.getElementById('detail-commit-msg').textContent = d.commitMessage;
+
+      // GitHub Integration Details (Mocked based on PR existence)
+      const githubCard = document.getElementById('detail-github-card');
+      if (d.prId) {
+        githubCard.style.display = 'block';
+        const prStatusBadge = document.getElementById('detail-pr-status');
+        prStatusBadge.textContent = d.state === 'READY' ? 'Merged' : 'Open';
+        prStatusBadge.className = 'status-badge';
+        if (d.state === 'READY') {
+          prStatusBadge.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
+          prStatusBadge.style.borderColor = 'rgba(139, 92, 246, 0.25)';
+          prStatusBadge.style.color = '#c084fc';
+        } else {
+          prStatusBadge.classList.add('status-building-badge');
+        }
+        
+        const prLink = document.getElementById('detail-pr-link');
+        prLink.href = `https://github.com/Akashno/vercel-deployments/pull/${d.prId}`;
+        prLink.textContent = `#${d.prId} feat: add integrations support`;
+      } else {
+        githubCard.style.display = 'none';
+      }
+
+      // Jira Integration Details (Mocked based on Jira ID existence)
+      const jiraCard = document.getElementById('detail-jira-card');
+      if (d.jiraId) {
+        jiraCard.style.display = 'block';
+        const jiraStatusBadge = document.getElementById('detail-jira-status');
+        jiraStatusBadge.textContent = d.state === 'READY' ? 'Done' : 'In Progress';
+        jiraStatusBadge.className = 'status-badge';
+        if (d.state === 'READY') {
+          jiraStatusBadge.classList.add('status-ready-badge');
+        } else {
+          jiraStatusBadge.classList.add('status-building-badge');
+        }
+
+        const jiraLink = document.getElementById('detail-jira-link');
+        jiraLink.href = `https://akashno.atlassian.net/browse/${d.jiraId}`;
+        jiraLink.textContent = d.jiraId;
+        
+        document.getElementById('detail-jira-summary').textContent = 'Implement automated branch tracking & deployment triggers';
+      } else {
+        jiraCard.style.display = 'none';
+      }
+
+      document.getElementById('detail-drawer').classList.add('open');
+    }
+
+    function closeDetailDrawer() {
+      document.getElementById('detail-drawer').classList.remove('open');
+    }
+
+    // Filter Trigger
+    function filterDeployments() {
+      renderTable();
+    }
+
+    // Deploy Modal Controls
+    function openDeployModal(preselectedBranch = '') {
+      const select = document.getElementById('modal-branch-select');
+      if (preselectedBranch) {
+        select.value = preselectedBranch;
+      }
+      document.getElementById('deploy-modal-overlay').classList.add('open');
+    }
+
+    function closeDeployModal() {
+      document.getElementById('deploy-modal-overlay').classList.remove('open');
+    }
+
+    // Trigger deployment directly or from modal
+    function triggerForceDeploy() {
+      const targetBranch = document.getElementById('modal-branch-select').value;
+      closeDeployModal();
+      triggerDeployDirectly(targetBranch);
+    }
+
+    function triggerDeployDirectly(branch) {
+      // Find info from existing DB entry to preserve PR / Jira link context if applicable
+      const existing = DEPLOYMENTS_DB.find(d => d.branch === branch) || {};
+
+      const newSha = 'sha_' + Math.random().toString(36).substring(2, 9);
+
+      const newDep = {
+        uid: 'dep_' + Math.random().toString(36).substring(2, 14),
+        branch: branch,
+        commitSha: newSha,
+        commitMessage: 'chore: manual empty commit',
+        commitAuthor: 'github-actions[bot]',
+        state: 'BUILDING',
+        createdAt: Date.now(),
+        target: branch === 'main' ? 'production' : null,
+        prId: existing.prId || null,
+        jiraId: existing.jiraId || null,
+        logs: []
+      };
+
+      // Add to top of array
+      DEPLOYMENTS_DB.unshift(newDep);
+
+      // Keep maximum 10 elements in the database
+      if (DEPLOYMENTS_DB.length > 10) {
+        DEPLOYMENTS_DB.pop();
+      }
+
+      // Update UI
+      renderTable();
+
+      // Simulate building for 3 seconds, then go to READY (deployed)
+      setTimeout(() => {
+        newDep.state = 'READY';
+        renderTable();
+      }, 3000);
+    }
+
+    // Code setup guide switch tab logic
+    function switchTab(evt, tabId) {
+      // Get all tab panels and buttons
+      const panels = document.getElementsByClassName('tab-panel');
+      for (let i = 0; i < panels.length; i++) {
+        panels[i].classList.remove('active');
+      }
+
+      const buttons = document.getElementsByClassName('tab-btn');
+      for (let i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove('active');
+      }
+
+      // Show the current tab panel, and add active class to button
+      document.getElementById(tabId).classList.add('active');
+      evt.currentTarget.classList.add('active');
+    }
+
+    // Global click listener to close dropdowns
+    document.addEventListener('click', () => {
+      if (openDropdownUid !== null) {
+        openDropdownUid = null;
+        renderTable();
+      }
+    });
+
+    // Start
+    renderTable();
+  </script>
+</body>
+
+</html>
