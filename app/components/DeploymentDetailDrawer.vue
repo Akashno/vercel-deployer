@@ -115,11 +115,7 @@ function formatDuration(ms: number | null): string {
   return `${Math.floor(s / 60)}m ${s % 60}s`
 }
 
-const JIRA_KEY_RE = /([A-Z]+-\d+)/
-const jiraKey = computed(() => {
-  const m = data.value?.branch?.match(JIRA_KEY_RE)
-  return m ? m[1] : null
-})
+const jiraKey = computed(() => parseJiraKey(data.value?.branch ?? null))
 
 const ghPr = ref<GhPr | null>(null)
 const ghPrPending = ref(false)
@@ -372,6 +368,39 @@ onMounted(() => {
                     <span class="text-text-secondary text-xs truncate">#{{ ghPr.number }}</span>
                   </div>
                   <div class="text-text-primary text-xs font-medium truncate" :title="ghPr.title">{{ ghPr.title }}</div>
+
+                  <!-- Review Status -->
+                  <div class="flex items-center gap-1.5 text-[11px] mt-1">
+                    <Icon v-if="ghPr.reviews.approved > 0 && ghPr.reviews.changesRequested === 0" name="lucide:check-circle" class="h-3.5 w-3.5 text-emerald-400" />
+                    <Icon v-else-if="ghPr.reviews.changesRequested > 0" name="lucide:alert-circle" class="h-3.5 w-3.5 text-rose-400" />
+                    <Icon v-else name="lucide:eye" class="h-3.5 w-3.5 text-text-quaternary" />
+
+                    <span v-if="ghPr.reviews.approved > 0 && ghPr.reviews.changesRequested === 0" class="font-medium text-emerald-400">
+                      Approved ({{ ghPr.reviews.approved }})
+                    </span>
+                    <span v-else-if="ghPr.reviews.changesRequested > 0" class="font-medium text-rose-400">
+                      Changes Requested ({{ ghPr.reviews.changesRequested }})
+                    </span>
+                    <span v-else class="text-text-tertiary">
+                      No reviews
+                    </span>
+                  </div>
+
+                  <!-- PR Labels -->
+                  <div v-if="ghPr.labels && ghPr.labels.length > 0" class="flex flex-wrap gap-1 mt-2">
+                    <span
+                      v-for="l in ghPr.labels"
+                      :key="l.name"
+                      class="text-[9px] font-semibold px-1.5 py-[1px] rounded-[3px] border"
+                      :style="{
+                        backgroundColor: `#${l.color}15`,
+                        borderColor: `#${l.color}35`,
+                        color: `#${l.color}`
+                      }"
+                    >
+                      {{ l.name }}
+                    </span>
+                  </div>
                 </div>
               </div>
 

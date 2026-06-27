@@ -1,5 +1,6 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
 import { vercelApi } from '~~/server/utils/api'
+import { validateBranch, validateSha } from '~~/server/utils/validation'
 
 interface VercelDeploymentMeta {
   githubCommitRef?: string
@@ -26,12 +27,15 @@ interface VercelDeploymentsResponse {
 
 export default defineEventHandler(async (event) => {
   const { branch, sha, since } = getQuery(event) as { branch?: string; sha?: string; since?: string }
-  if (!branch) {
-    throw createError({ statusCode: 400, message: 'Branch name is required' })
+  validateBranch(branch)
+  validateSha(sha)
+  if (since && !/^\d+$/.test(since)) {
+    throw createError({ statusCode: 400, message: 'Invalid since timestamp format' })
   }
 
-  const owner = process.env.GITHUB_OWNER
-  const repo = process.env.GITHUB_REPO
+  const config = useRuntimeConfig()
+  const owner = config.githubOwner
+  const repo = config.githubRepo
 
   // Fetch recent deployments for the project using the shared vercelApi client
   // projectId and teamId are automatically appended by the client's interceptor!

@@ -2,9 +2,10 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { username, password } = body ?? {}
 
-  const envUser = process.env.AUTH_USERNAME
-  const envPass = process.env.AUTH_PASSWORD
-  const secret = process.env.AUTH_SECRET
+  const config = useRuntimeConfig()
+  const envUser = config.authUsername
+  const envPass = config.authPassword
+  const secret = config.authSecret
 
   if (!envUser || !envPass || !secret) {
     throw createError({ statusCode: 500, message: 'Auth not configured on server' })

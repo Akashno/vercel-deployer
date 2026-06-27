@@ -1,9 +1,18 @@
+import { validateOwnerRepo, validateSha } from '~~/server/utils/validation'
+
 export default defineEventHandler(async (event) => {
   const { owner, repo, pr, sha } = getQuery(event)
 
-  const token = process.env.GITHUB_TOKEN
+  validateOwnerRepo(owner, repo)
+  validateSha(sha)
+  if (pr && !/^\d+$/.test(pr as string)) {
+    throw createError({ statusCode: 400, message: 'Invalid pull request number format' })
+  }
+
+  const config = useRuntimeConfig()
+  const token = config.githubToken
   if (!token || !owner || !repo || !pr) {
-    throw createError({ statusCode: 400, message: 'Missing owner, repo, pr or GITHUB_TOKEN' })
+    throw createError({ statusCode: 400, message: 'Missing owner, repo, pr or GITHUB_TOKEN configuration' })
   }
 
   const headers = {
