@@ -505,8 +505,12 @@
       border-bottom: none;
     }
 
+    .dash-table tr {
+      cursor: pointer;
+    }
+
     .dash-table tr:hover {
-      background-color: rgba(255, 255, 255, 0.02);
+      background-color: rgba(255, 255, 255, 0.05);
     }
 
     .dash-table tr.active-row {
@@ -656,6 +660,44 @@
       cursor: not-allowed;
     }
 
+    .sim-btn-icon {
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-primary);
+      color: var(--text-secondary);
+      padding: 0.35rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .sim-btn-icon:hover:not(.disabled) {
+      background-color: var(--border-primary);
+      color: #fff;
+      border-color: var(--border-secondary);
+    }
+
+    .sim-btn-icon.disabled {
+      cursor: not-allowed;
+      opacity: 0.35;
+    }
+
+    @keyframes skeleton-pulse {
+      0%, 100% {
+        opacity: 0.6;
+      }
+      50% {
+        opacity: 0.35;
+      }
+    }
+    
+    .skeleton-pulse {
+      animation: skeleton-pulse 1.5s infinite ease-in-out;
+    }
+
     .sim-dropdown-container {
       position: relative;
       display: inline-block;
@@ -732,7 +774,7 @@
       width: 440px;
       background-color: var(--bg-secondary);
       border-left: 1px solid var(--border-primary);
-      box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
       transform: translateX(100%);
@@ -773,6 +815,7 @@
     .drawer-close:hover {
       color: #fff;
     }
+
     /* Modal Form for Branch Deploy */
     .modal-overlay {
       position: absolute;
@@ -1334,7 +1377,7 @@
       <span>🎉</span> Free &amp; Self-Hosted Dashboard for Teams
     </div>
     <h1 class="hero-title">
-      Share Vercel Deployer with your entire team — <span>No Paid Seats</span>
+      Share Vercel Deployments with your entire team — <span>No Paid Seats</span>
     </h1>
     <p class="hero-subtitle">
       Give project managers, QA engineers, designers, and clients full control. Let them watch builds, browse branches,
@@ -1408,7 +1451,7 @@
             </thead>
             <tbody id="sim-table-body">
               <!-- Rendered via JS -->
-             </tbody>
+            </tbody>
           </table>
         </div>
 
@@ -1418,78 +1461,157 @@
             <span class="drawer-title" id="detail-drawer-title">Inspect Deployment</span>
             <button class="drawer-close" onclick="closeDetailDrawer()">✕</button>
           </div>
-          
-          <div class="drawer-body" style="padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem;">
+
+          <!-- Detail Drawer Skeleton -->
+          <div id="detail-drawer-skeleton" class="drawer-body" style="padding: 1.25rem; display: none; flex-direction: column; gap: 1.25rem; overflow-y: auto; flex: 1;">
+            <!-- Header Summary Skeleton -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <div class="skeleton-pulse" style="height: 18px; width: 60px; background-color: var(--border-primary); border-radius: 4px;"></div>
+                <div class="skeleton-pulse" style="height: 18px; width: 100px; background-color: var(--border-primary); border-radius: 4px;"></div>
+              </div>
+              <div class="skeleton-pulse" style="height: 28px; width: 80px; background-color: var(--border-primary); border-radius: 4px;"></div>
+            </div>
+
+            <!-- Meta Strip Skeleton -->
+            <div style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.8rem;">
+              <div style="display: flex; justify-content: space-between;"><div class="skeleton-pulse" style="height: 12px; width: 80px; background-color: var(--border-primary); border-radius: 3px;"></div><div class="skeleton-pulse" style="height: 12px; width: 140px; background-color: var(--border-primary); border-radius: 3px;"></div></div>
+              <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;"><div class="skeleton-pulse" style="height: 12px; width: 60px; background-color: var(--border-primary); border-radius: 3px;"></div><div class="skeleton-pulse" style="height: 12px; width: 100px; background-color: var(--border-primary); border-radius: 3px;"></div></div>
+              <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;"><div class="skeleton-pulse" style="height: 12px; width: 50px; background-color: var(--border-primary); border-radius: 3px;"></div><div class="skeleton-pulse" style="height: 12px; width: 120px; background-color: var(--border-primary); border-radius: 3px;"></div></div>
+            </div>
+
+            <!-- Integrations Grid Skeleton -->
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              <div style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div class="skeleton-pulse" style="height: 12px; width: 80px; background-color: var(--border-primary); border-radius: 3px;"></div>
+                <div class="skeleton-pulse" style="height: 12px; width: 120px; background-color: var(--border-primary); border-radius: 3px;"></div>
+              </div>
+              <div style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div class="skeleton-pulse" style="height: 12px; width: 80px; background-color: var(--border-primary); border-radius: 3px;"></div>
+                <div class="skeleton-pulse" style="height: 12px; width: 120px; background-color: var(--border-primary); border-radius: 3px;"></div>
+              </div>
+            </div>
+
+            <!-- Logs Skeleton -->
+            <div style="flex: 1; min-height: 150px; background-color: #050507; border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+              <div class="skeleton-pulse" style="height: 10px; width: 90%; background-color: var(--border-primary); border-radius: 2px;"></div>
+              <div class="skeleton-pulse" style="height: 10px; width: 70%; background-color: var(--border-primary); border-radius: 2px;"></div>
+              <div class="skeleton-pulse" style="height: 10px; width: 85%; background-color: var(--border-primary); border-radius: 2px;"></div>
+            </div>
+          </div>
+
+          <!-- Real Content Body -->
+          <div id="detail-drawer-content" class="drawer-body"
+            style="padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem; flex: 1;">
             <!-- Header Info -->
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span id="detail-status-badge" class="status-badge"></span>
-                <span id="detail-branch-title" style="font-weight: 600; color: #fff; font-size: 0.95rem; font-family: var(--font-mono);"></span>
+                <span id="detail-branch-title"
+                  style="font-weight: 600; color: #fff; font-size: 0.95rem; font-family: var(--font-mono); font-weight: 500;"></span>
               </div>
-              <a id="detail-preview-btn" href="#" target="_blank" rel="noopener" class="sim-btn-deploy" style="background-color: var(--accent-blue); border-color: var(--accent-blue); color: #fff; text-decoration: none; padding: 0.35rem 0.65rem; border-radius: 4px;">
+              <a id="detail-preview-btn" href="#" target="_blank" rel="noopener" class="sim-btn-deploy"
+                style="background-color: var(--accent-blue); border-color: var(--accent-blue); color: #fff; text-decoration: none; padding: 0.35rem 0.65rem; border-radius: 4px;">
                 Preview URL ↗
               </a>
             </div>
 
             <!-- Meta Strip -->
-            <div style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.8rem;">
+            <div
+              style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.8rem;">
               <div class="meta-row" style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="color: var(--text-tertiary);">Preview URL</span>
-                <a id="detail-url-link" href="#" target="_blank" rel="noopener" style="font-family: var(--font-mono); color: #fff; text-decoration: none; word-break: break-all; max-width: 250px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></a>
+                <a id="detail-url-link" href="#" target="_blank" rel="noopener"
+                  style="font-family: var(--font-mono); color: #fff; text-decoration: none; word-break: break-all; max-width: 250px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></a>
               </div>
-              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+              <div class="meta-row"
+                style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                 <span style="color: var(--text-tertiary);">Commit ID</span>
-                <span id="detail-commit-sha" style="font-family: var(--font-mono); color: var(--text-secondary);"></span>
+                <span id="detail-commit-sha"
+                  style="font-family: var(--font-mono); color: var(--text-secondary);"></span>
               </div>
-              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+              <div class="meta-row"
+                style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                 <span style="color: var(--text-tertiary);">Author</span>
                 <span id="detail-commit-author" style="color: var(--text-secondary);"></span>
               </div>
-              <div class="meta-row" style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+              <div class="meta-row"
+                style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                 <span style="color: var(--text-tertiary);">Commit Msg</span>
-                <span id="detail-commit-msg" style="color: var(--text-secondary); text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+                <span id="detail-commit-msg"
+                  style="color: var(--text-secondary); text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
               </div>
             </div>
 
             <!-- Integrations Section -->
             <div id="detail-integrations-container" style="display: flex; flex-direction: column; gap: 1rem;">
               <!-- GitHub Card -->
-              <div id="detail-github-card" style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
+              <div id="detail-github-card"
+                style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="color: var(--text-tertiary);"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
-                  <span style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">GitHub Pull Request</span>
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"
+                    style="color: var(--text-tertiary);">
+                    <path
+                      d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8" />
+                  </svg>
+                  <span
+                    style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">GitHub
+                    Pull Request</span>
                 </div>
                 <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="color: var(--text-tertiary); width: 60px;">Status</span>
                     <span id="detail-pr-status" class="status-badge" style="text-transform: uppercase;"></span>
                   </div>
-                  <div style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                  <div
+                    style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                     <span style="color: var(--text-tertiary); width: 60px; shrink-0;">PR</span>
-                    <a id="detail-pr-link" href="#" target="_blank" rel="noopener" style="color: #60a5fa; text-decoration: none; hover:underline;"></a>
+                    <a id="detail-pr-link" href="#" target="_blank" rel="noopener"
+                      style="color: #60a5fa; text-decoration: none; hover:underline;"></a>
                   </div>
                 </div>
               </div>
 
               <!-- Jira Card -->
-              <div id="detail-jira-card" style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
+              <div id="detail-jira-card"
+                style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-primary); border-radius: 8px; padding: 0.85rem 1rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="color: var(--text-tertiary);"><path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM9 12.5H4v-1h5v1zm3-3H4v-1h8v1zm0-3H4v-1h8v1z"/></svg>
-                  <span style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">Jira Issue</span>
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"
+                    style="color: var(--text-tertiary);">
+                    <path
+                      d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM9 12.5H4v-1h5v1zm3-3H4v-1h8v1zm0-3H4v-1h8v1z" />
+                  </svg>
+                  <span
+                    style="color: var(--text-tertiary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; flex: 1;">Jira
+                    Issue</span>
                 </div>
                 <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="color: var(--text-tertiary); width: 60px;">Status</span>
                     <span id="detail-jira-status" class="status-badge" style="text-transform: uppercase;"></span>
                   </div>
-                  <div style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                  <div
+                    style="display: flex; align-items: start; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
                     <span style="color: var(--text-tertiary); width: 60px; shrink-0;">Issue</span>
                     <span style="color: var(--text-secondary);">
-                      <a id="detail-jira-link" href="#" target="_blank" rel="noopener" style="color: #60a5fa; font-family: var(--font-mono); font-weight: 600; text-decoration: none; margin-right: 0.35rem;"></a>
-                      <span id="detail-jira-summary" style="word-break: break-all; color: var(--text-secondary);"></span>
+                      <a id="detail-jira-link" href="#" target="_blank" rel="noopener"
+                        style="color: #60a5fa; font-family: var(--font-mono); font-weight: 600; text-decoration: none; margin-right: 0.35rem;"></a>
+                      <span id="detail-jira-summary"
+                        style="word-break: break-all; color: var(--text-secondary);"></span>
                     </span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <!-- Build Logs -->
+            <div style="flex: 1; min-height: 200px; display: flex; flex-direction: column; border: 1px solid var(--border-primary); border-radius: 8px; overflow: hidden; background-color: #0c0c0e;">
+              <div style="background-color: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary); padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">
+                Build Logs
+              </div>
+              <div id="detail-logs-body" style="flex: 1; overflow-y: auto; padding: 0.75rem; font-family: var(--font-mono); font-size: 0.7rem; line-height: 1.5; color: var(--text-secondary); background-color: #050507; max-height: 200px;">
+                <!-- Logs rendered via JS -->
               </div>
             </div>
 
@@ -1566,7 +1688,9 @@
             </svg>
           </div>
           <h3 class="feature-title">PR &amp; Jira Integrations</h3>
-          <p class="feature-desc">Automatically parses branch names (matching your Jira issue key like <code>PROJ-123</code>) to surface links to active GitHub Pull Requests and Jira tickets right in the deployment listing.</p>
+          <p class="feature-desc">Automatically parses branch names (matching your Jira issue key like
+            <code>PROJ-123</code>) to surface links to active GitHub Pull Requests and Jira tickets right in the
+            deployment listing.</p>
         </div>
         <!-- Feature 4 -->
         <div class="feature-card">
@@ -1751,7 +1875,8 @@
             <div class="code-line"><span style="color:#60a5fa">PROJECT_ID</span>=<span
                 style="color:#a855f7">"prj_projectIdHere"</span></div>
             <div class="code-line"><span style="color:#60a5fa">TEAM_ID</span>=<span style="color:#a855f7">""</span>
-              <span style="color:#71717a"># Required only if project is in a team</span></div>
+              <span style="color:#71717a"># Required only if project is in a team</span>
+            </div>
             <div class="code-line"></div>
             <div class="code-line"><span style="color:#71717a"># Dashboard Authentication</span></div>
             <div class="code-line"><span style="color:#60a5fa">AUTH_USERNAME</span>=<span
@@ -1954,44 +2079,37 @@
           `;
         }
 
-        // PR and Jira elements in Dropdown
-        let dropdownHtml = '';
-        if (openDropdownUid === d.uid) {
-          const prLink = d.prId ? `https://github.com/Akashno/vercel-deployments/pull/${d.prId}` : '#';
-          const prClass = d.prId ? 'sim-dropdown-item' : 'sim-dropdown-item disabled';
-          const prText = d.prId ? `PR #${d.prId}` : 'No PR linked';
-
-          const jiraTicket = d.jiraId;
-          const jiraLink = jiraTicket ? `https://akashno.atlassian.net/browse/${jiraTicket}` : '#';
-          const jiraClass = jiraTicket ? 'sim-dropdown-item' : 'sim-dropdown-item disabled';
-          const jiraText = jiraTicket ? jiraTicket : 'No Jira ticket';
-
-          dropdownHtml = `
-            <div class="sim-dropdown-panel" onclick="event.stopPropagation()">
-              <a href="#" class="sim-dropdown-item" onclick="openDropdownUid = null; renderTable(); openDetailDrawer('${d.uid}'); event.preventDefault();">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <span>View Details</span>
-              </a>
-              <a href="${prLink}" target="_blank" rel="noopener noreferrer" class="${prClass}" onclick="openDropdownUid = null; renderTable();">
-                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
-                </svg>
-                <span>${prText}</span>
-              </a>
-              <a href="${jiraLink}" target="_blank" rel="noopener noreferrer" class="${jiraClass}" onclick="openDropdownUid = null; renderTable();">
-                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color: #2684FF; fill: currentColor;">
-                  <path d="M11.53 2C11.53 2 11.83 3.65 10.3 5.17L2.14 13.34C0.65 14.83 0.65 17.22 2.14 18.71L5.29 21.86C6.78 23.35 9.17 23.35 10.66 21.86L18.83 13.69C20.35 12.16 22 12.47 22 12.47L20.25 10.72L18.8 9.27L11.53 2Z"/>
-                  <path d="M22 12.47V21.1C22 21.6 21.6 22 21.1 22H12.47L22 12.47Z" opacity="0.8"/>
-                </svg>
-                <span>${jiraText}</span>
-              </a>
-            </div>
-          `;
-        }
-
+        // PR and Jira elements
+        const prButton = d.prId ? `
+          <a href="https://github.com/Akashno/vercel-deployments/pull/${d.prId}" target="_blank" rel="noopener noreferrer" class="sim-btn-icon" title="View PR #${d.prId}">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+            </svg>
+          </a>
+        ` : `
+          <div class="sim-btn-icon disabled" title="No PR linked">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+            </svg>
+          </div>
+        `;
+ 
+        const jiraButton = d.jiraId ? `
+          <a href="https://akashno.atlassian.net/browse/${d.jiraId}" target="_blank" rel="noopener noreferrer" class="sim-btn-icon" title="View Issue ${d.jiraId}">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color: #2684FF; fill: currentColor;">
+              <path d="M11.53 2C11.53 2 11.83 3.65 10.3 5.17L2.14 13.34C0.65 14.83 0.65 17.22 2.14 18.71L5.29 21.86C6.78 23.35 9.17 23.35 10.66 21.86L18.83 13.69C20.35 12.16 22 12.47 22 12.47L20.25 10.72L18.8 9.27L11.53 2Z"/>
+              <path d="M22 12.47V21.1C22 21.6 21.6 22 21.1 22H12.47L22 12.47Z" opacity="0.8"/>
+            </svg>
+          </a>
+        ` : `
+          <div class="sim-btn-icon disabled" title="No Jira ticket">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color: #71717a; fill: currentColor;">
+              <path d="M11.53 2C11.53 2 11.83 3.65 10.3 5.17L2.14 13.34C0.65 14.83 0.65 17.22 2.14 18.71L5.29 21.86C6.78 23.35 9.17 23.35 10.66 21.86L18.83 13.69C20.35 12.16 22 12.47 22 12.47L20.25 10.72L18.8 9.27L11.53 2Z"/>
+              <path d="M22 12.47V21.1C22 21.6 21.6 22 21.1 22H12.47L22 12.47Z" opacity="0.8"/>
+            </svg>
+          </div>
+        `;
+ 
         tr.innerHTML = `
           <td>
             <div class="branch-cell">
@@ -2013,14 +2131,8 @@
           <td onclick="event.stopPropagation()">
             <div class="sim-actions-cell">
               ${deployButtonHtml}
-              <div class="sim-dropdown-container">
-                <button class="sim-dropdown-btn ${openDropdownUid === d.uid ? 'active' : ''}" onclick="toggleDropdown(event, '${d.uid}')">
-                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-                  </svg>
-                </button>
-                ${dropdownHtml}
-              </div>
+              ${prButton}
+              ${jiraButton}
             </div>
           </td>
         `;
@@ -2028,17 +2140,23 @@
       });
     }
 
+    let detailDrawerTimeout = null;
     function openDetailDrawer(uid) {
+      if (detailDrawerTimeout) clearTimeout(detailDrawerTimeout);
       const d = DEPLOYMENTS_DB.find(x => x.uid === uid);
       if (!d) return;
 
-      // Populate elements
+      // Show drawer & skeleton, hide real content
+      document.getElementById('detail-drawer').classList.add('open');
+      document.getElementById('detail-drawer-skeleton').style.display = 'flex';
+      document.getElementById('detail-drawer-content').style.display = 'none';
+
+      // Populate elements immediately
       document.getElementById('detail-drawer-title').textContent = `Inspect: ${d.branch}`;
-      
+
       // Status Badge
       const statusBadge = document.getElementById('detail-status-badge');
       statusBadge.textContent = d.state;
-      // Reset classes
       statusBadge.className = 'status-badge';
       if (d.state === 'READY') statusBadge.classList.add('status-ready-badge');
       else if (d.state === 'BUILDING') statusBadge.classList.add('status-building-badge');
@@ -2047,7 +2165,7 @@
       else if (d.state === 'ERROR') statusBadge.classList.add('status-error-badge');
 
       document.getElementById('detail-branch-title').textContent = d.branch;
-      
+
       // Preview URL links
       const previewUrl = `vercel-deployments-${d.commitSha ? d.commitSha.slice(0, 7) : 'branch'}.vercel.app`;
       const previewBtn = document.getElementById('detail-preview-btn');
@@ -2066,7 +2184,7 @@
       document.getElementById('detail-commit-author').textContent = d.commitAuthor;
       document.getElementById('detail-commit-msg').textContent = d.commitMessage;
 
-      // GitHub Integration Details (Mocked based on PR existence)
+      // GitHub Integration Details
       const githubCard = document.getElementById('detail-github-card');
       if (d.prId) {
         githubCard.style.display = 'block';
@@ -2080,7 +2198,7 @@
         } else {
           prStatusBadge.classList.add('status-building-badge');
         }
-        
+
         const prLink = document.getElementById('detail-pr-link');
         prLink.href = `https://github.com/Akashno/vercel-deployments/pull/${d.prId}`;
         prLink.textContent = `#${d.prId} feat: add integrations support`;
@@ -2088,7 +2206,7 @@
         githubCard.style.display = 'none';
       }
 
-      // Jira Integration Details (Mocked based on Jira ID existence)
+      // Jira Integration Details
       const jiraCard = document.getElementById('detail-jira-card');
       if (d.jiraId) {
         jiraCard.style.display = 'block';
@@ -2104,13 +2222,38 @@
         const jiraLink = document.getElementById('detail-jira-link');
         jiraLink.href = `https://akashno.atlassian.net/browse/${d.jiraId}`;
         jiraLink.textContent = d.jiraId;
-        
+
         document.getElementById('detail-jira-summary').textContent = 'Implement automated branch tracking & deployment triggers';
       } else {
         jiraCard.style.display = 'none';
       }
 
-      document.getElementById('detail-drawer').classList.add('open');
+      // Populate logs
+      const logsBody = document.getElementById('detail-logs-body');
+      logsBody.innerHTML = '';
+      if (d.logs && d.logs.length > 0) {
+        d.logs.forEach(line => {
+          const div = document.createElement('div');
+          div.style.marginBottom = '0.25rem';
+          if (line.type === 'error') {
+            div.style.color = '#ef4444';
+          } else if (line.type === 'info') {
+            div.style.color = '#3b82f6';
+          } else if (line.type === 'success') {
+            div.style.color = '#10b981';
+          }
+          div.textContent = `[${line.time}] ${line.text}`;
+          logsBody.appendChild(div);
+        });
+      } else {
+        logsBody.innerHTML = '<div style="color: var(--text-tertiary); font-style: italic;">No logs available.</div>';
+      }
+
+      // Simulate a loading state for 400ms
+      detailDrawerTimeout = setTimeout(() => {
+        document.getElementById('detail-drawer-skeleton').style.display = 'none';
+        document.getElementById('detail-drawer-content').style.display = 'flex';
+      }, 400);
     }
 
     function closeDetailDrawer() {

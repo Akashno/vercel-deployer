@@ -48,11 +48,17 @@ function getJiraUrl(branch: string | null): string | null {
 }
 
 const collapsed = ref((route.query.collapse as string) !== '0')
-const { data, pending, error, refresh } = await useFetch<Deployment[]>('/api/deployments', {
+interface DeploymentsResponse {
+  projectName: string
+  deployments: Deployment[]
+}
+const { data: resData, pending, error, refresh } = await useFetch<DeploymentsResponse>('/api/deployments', {
   query: { collapse: collapsed },
 })
-const { data: project } = await useFetch<{ name: string }>('/api/project')
+const data = computed(() => resData.value?.deployments ?? [])
+const project = computed(() => ({ name: resData.value?.projectName ?? '—' }))
 
+const inspectingUid = ref<string | null>(null)
 const openDropdown = ref<string | null>(null)
 const cancelling = ref<string | null>(null)
 const CANCELLABLE = new Set(['BUILDING', 'QUEUED', 'INITIALIZING'])
@@ -77,6 +83,9 @@ const searchInput = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark')
+  if (route.query.inspect) {
+    inspectingUid.value = route.query.inspect as string
+  }
   const onKeydown = (e: KeyboardEvent) => {
     if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
@@ -103,10 +112,11 @@ function syncUrl() {
   if (filterStatus.value) query.status = filterStatus.value
   if (filterAuthor.value) query.author = filterAuthor.value
   if (!collapsed.value) query.collapse = '0'
+  if (inspectingUid.value) query.inspect = inspectingUid.value
   router.replace({ query })
 }
 
-watch([filterStatus, filterAuthor, collapsed], syncUrl)
+watch([filterStatus, filterAuthor, collapsed, inspectingUid], syncUrl)
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 watch(search, () => {
@@ -345,6 +355,12 @@ function isFdBusy(uid: string): boolean {
     <header class="flex items-center justify-between flex-wrap gap-4 mb-4">
       <div class="flex items-center gap-2.5">
         <div class="flex items-center gap-2">
+          <!-- Project Logo / Avatar -->
+          <div
+            class="w-6 h-6 rounded-md bg-gradient-to-br from-blue-main to-purple-600 flex items-center justify-center text-white text-[10px] font-bold uppercase tracking-wider shrink-0"
+          >
+            {{ project?.name ? project.name.slice(0, 2) : 'VP' }}
+          </div>
           <span class="text-[18px] font-semibold tracking-[-0.02em] text-text-primary">{{ project?.name ?? '—' }}</span>
         </div>
         <span v-if="data" class="bg-border-secondary border border-border-primary rounded-full text-text-secondary text-xs font-medium px-2 py-[1px]">
@@ -481,10 +497,10 @@ function isFdBusy(uid: string): boolean {
             :key="d.uid"
             class="clickable-row group"
             :class="[
-              d._pending ? 'cursor-default bg-orange-bg/20 hover:bg-orange-bg/30' : 'hover:bg-row-hover'
+              d._pending ? 'cursor-default bg-orange-bg/20 hover:bg-orange-bg/30' : 'cursor-pointer hover:bg-row-hover'
             ]"
-            @click="!d._pending && navigateTo(`/deployments/${d.uid}`)"
-            @keydown.enter="!d._pending && navigateTo(`/deployments/${d.uid}`)"
+            @click="!d._pending && (inspectingUid = d.uid)"
+            @keydown.enter="!d._pending && (inspectingUid = d.uid)"
             :tabindex="d._pending ? -1 : 0"
           >
             <!-- Branch / Commit Info -->
@@ -574,74 +590,58 @@ function isFdBusy(uid: string): boolean {
 
                 <template v-else>
                   <!-- Deploy button -->
-                  <button
-                    :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
-                    :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
-                    @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && forceDeploy($event, d.uid, d.branch!)"
-                    class="inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[13px] gap-1.5 px-3 py-[5px] font-medium transition-colors hover:not-disabled:bg-btn-hover hover:not-disabled:border-border-focus hover:not-disabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
-                  >
-                    <Icon name="lucide:rocket" class="h-3.5 w-3.5" />
-                    <span>Deploy</span>
-                  </button>
 
                   <span v-if="fdErrors[d.uid]" class="inline-block text-[10px] font-semibold bg-red-bg border border-red-border text-red-text rounded-[4px] px-2 py-[2.4px]" :title="fdErrors[d.uid]">
                     Error
                   </span>
 
-                  <!-- 3-dot dropdown menu -->
-                  <div class="relative inline-block">
-                    <button
-                      @click="openDropdown = openDropdown === d.uid ? null : d.uid"
-                      class="inline-flex items-center bg-transparent border border-transparent rounded-[4px] text-text-quaternary cursor-pointer p-[3.2px] transition-all hover:bg-btn hover:border-border-tertiary hover:text-text-secondary"
-                      :class="{ 'bg-btn border-border-tertiary text-text-secondary': openDropdown === d.uid }"
-                    >
-                      <Icon name="lucide:more-vertical" class="h-3.5 w-3.5" />
-                    </button>
-                    
-                    <!-- Dropdown panel -->
-                    <div
-                      v-if="openDropdown === d.uid"
-                      class="absolute  right-0 bg-card border border-border-tertiary rounded-[6px] shadow-[0_4px_12px_rgba(0,0,0,0.5)] flex flex-col p-1 z-30 w-[130px] space-y-0.5"
-                      :class="[ idx >= filteredDeployments.length - 2 && idx > 0 ? 'bottom-full mb-1' : 'top-full mt-1' ]"
-                    >
-                      <!-- View Details link -->
-                      <NuxtLink
-                        :to="`/deployments/${d.uid}`"
-                        class="flex items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] no-underline hover:bg-btn-hover hover:text-text-primary transition-colors"
-                        @click="openDropdown = null"
-                      >
-                        <Icon name="lucide:eye" class="h-3.5 w-3.5 text-zinc-500" />
-                        <span>View Details</span>
-                      </NuxtLink>
-                      <!-- GitHub PR link -->
-                      <a
-                        :href="d.prUrl ?? undefined"
-                        :target="d.prUrl ? '_blank' : undefined"
-                        rel="noopener noreferrer"
-                        class="flex items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] no-underline hover:bg-btn-hover hover:text-text-primary transition-colors"
-                        :class="{ 'opacity-[0.35] cursor-default pointer-events-none': !d.prUrl }"
-                        :title="d.prUrl ? `View PR #${d.prId}` : 'No PR linked'"
-                        @click="!d.prUrl ? $event.preventDefault() : openDropdown = null"
-                      >
-                        <Icon name="ri:github-fill" class="h-3.5 w-3.5" />
-                        <span>{{ d.prUrl ? `PR #${d.prId}` : 'No PR linked' }}</span>
-                      </a>
-
-                      <!-- Jira Issue link -->
-                      <a
-                        :href="getJiraUrl(d.branch) ?? undefined"
-                        :target="getJiraUrl(d.branch) ? '_blank' : undefined"
-                        rel="noopener noreferrer"
-                        class="flex items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] no-underline hover:bg-btn-hover hover:text-text-primary transition-colors"
-                        :class="{ 'opacity-[0.35] cursor-default pointer-events-none': !getJiraTicket(d.branch) }"
-                        :title="getJiraTicket(d.branch) ? `View ${getJiraTicket(d.branch)} in Jira` : 'No Jira ticket in branch name'"
-                        @click="!getJiraUrl(d.branch) ? $event.preventDefault() : openDropdown = null"
-                      >
-                        <Icon name="logos:jira" class="h-3.5 w-3.5" />
-                        <span>{{ getJiraTicket(d.branch) ?? 'No Jira ticket' }}</span>
-                      </a>
-                    </div>
+                  <!-- GitHub PR link icon button -->
+                  <a
+                    v-if="d.prUrl"
+                    :href="d.prUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer p-[5px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
+                    title="View GitHub Pull Request"
+                  >
+                    <Icon name="ri:github-fill" class="h-[15px] w-[15px]" />
+                  </a>
+                  <div
+                    v-else
+                    class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-30 p-[5px]"
+                    title="No PR linked"
+                  >
+                    <Icon name="ri:github-fill" class="h-[15px] w-[15px]" />
                   </div>
+
+                  <!-- Jira Issue link icon button -->
+                  <a
+                    v-if="getJiraUrl(d.branch)"
+                    :href="getJiraUrl(d.branch)!"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer p-[5px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
+                    title="View Jira Ticket"
+                  >
+                    <Icon name="logos:jira" class="h-[15px] w-[15px]" />
+                  </a>
+                  <div
+                    v-else
+                    class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-30 p-[5px]"
+                    title="No Jira ticket"
+                  >
+                    <Icon name="logos:jira" class="h-[15px] w-[15px]" />
+                  </div>
+
+                  <button
+                    :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
+                    :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
+                    @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && forceDeploy($event, d.uid, d.branch!)"
+                    class=" inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[13px] gap-1.5 px-3 py-[3px] font-medium transition-colors hover:not-disabled:bg-btn-hover hover:not-disabled:border-border-focus hover:not-disabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
+                  >
+                    <Icon name="lucide:rocket" class="h-3.5 w-3.5" />
+                    <span>Deploy</span>
+                  </button>
                 </template>
               </div>
             </td>
@@ -662,6 +662,11 @@ function isFdBusy(uid: string): boolean {
       :branch="confirmPending?.branch ?? ''"
       @update:model-value="val => { if (!val) confirmPending = null }"
       @confirm="confirmForceDeploy"
+    />
+
+    <DeploymentDetailDrawer
+      :uid="inspectingUid"
+      @close="inspectingUid = null"
     />
   </div>
 </template>

@@ -73,14 +73,21 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  if (!collapse) return mapped
+  const deployments = (() => {
+    if (!collapse) return mapped
 
-  // Keep only the latest deployment per branch (Vercel returns newest-first)
-  const seen = new Set<string>()
-  return mapped.filter((d) => {
-    const key = d.branch ?? d.uid
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
+    // Keep only the latest deployment per branch (Vercel returns newest-first)
+    const seen = new Set<string>()
+    return mapped.filter((d) => {
+      const key = d.branch ?? d.uid
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  })()
+
+  return {
+    projectName: data.deployments[0]?.name ?? 'Vercel Project',
+    deployments,
+  }
 })
