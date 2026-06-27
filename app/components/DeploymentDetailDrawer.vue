@@ -213,7 +213,7 @@ onMounted(() => {
 
     <!-- Side Sheet / Drawer -->
     <Transition name="slide">
-      <div v-if="uid" class="fixed top-0 right-0 bottom-0 w-[550px] max-w-full bg-card border-l border-border-primary z-50 flex flex-col shadow-2xl h-screen overflow-hidden text-text-primary">
+      <div v-if="uid" class="fixed top-0 right-0 bottom-0 w-[850px] max-w-full bg-card border-l border-border-primary z-50 flex flex-col shadow-2xl h-screen overflow-hidden text-text-primary">
         <!-- Header -->
         <header class="flex items-center justify-between border-b border-border-secondary px-6 py-4 bg-page">
           <div class="flex items-center gap-2">

@@ -11,7 +11,7 @@
     --bg-input: #ffffff;
     --bg-button: #ffffff;
     --bg-button-hover: #f1f5f9;
-    --bg-row-hover: #f8fafc;
+    --bg-row-hover: #e2e8f060;
     --border-primary: #cbd5e1;
     --border-secondary: #e2e8f0;
     --border-tertiary: #cbd5e1;
@@ -49,7 +49,7 @@
     --bg-input: #0a0a0a;
     --bg-button: #111111;
     --bg-button-hover: #161616;
-    --bg-row-hover: #080808;
+    --bg-row-hover: #161616;
     --border-primary: #2a2a2a;
     --border-secondary: #1a1a1a;
     --border-tertiary: #222;

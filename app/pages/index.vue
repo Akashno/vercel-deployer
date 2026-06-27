@@ -497,7 +497,7 @@ function isFdBusy(uid: string): boolean {
             :key="d.uid"
             class="clickable-row group"
             :class="[
-              d._pending ? 'cursor-default bg-orange-bg/20 hover:bg-orange-bg/30' : 'hover:bg-row-hover'
+              d._pending ? 'cursor-default bg-orange-bg/20 hover:bg-orange-bg/30' : 'cursor-pointer hover:bg-row-hover'
             ]"
             @click="!d._pending && (inspectingUid = d.uid)"
             @keydown.enter="!d._pending && (inspectingUid = d.uid)"
@@ -590,73 +590,58 @@ function isFdBusy(uid: string): boolean {
 
                 <template v-else>
                   <!-- Deploy button -->
-                  <button
-                    :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
-                    :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
-                    @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && forceDeploy($event, d.uid, d.branch!)"
-                    class="inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[13px] gap-1.5 px-3 py-[5px] font-medium transition-colors hover:not-disabled:bg-btn-hover hover:not-disabled:border-border-focus hover:not-disabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
-                  >
-                    <Icon name="lucide:rocket" class="h-3.5 w-3.5" />
-                    <span>Deploy</span>
-                  </button>
 
                   <span v-if="fdErrors[d.uid]" class="inline-block text-[10px] font-semibold bg-red-bg border border-red-border text-red-text rounded-[4px] px-2 py-[2.4px]" :title="fdErrors[d.uid]">
                     Error
                   </span>
 
-                  <!-- 3-dot dropdown menu -->
-                  <div class="relative inline-block">
-                    <button
-                      @click="openDropdown = openDropdown === d.uid ? null : d.uid"
-                      class="inline-flex items-center bg-transparent border border-transparent rounded-[4px] text-text-quaternary cursor-pointer p-[3.2px] transition-all hover:bg-btn hover:border-border-tertiary hover:text-text-secondary"
-                      :class="{ 'bg-btn border-border-tertiary text-text-secondary': openDropdown === d.uid }"
-                    >
-                      <Icon name="lucide:more-vertical" class="h-3.5 w-3.5" />
-                    </button>
-                    
-                    <!-- Dropdown panel -->
-                    <div
-                      v-if="openDropdown === d.uid"
-                      class="absolute  right-0 bg-card border border-border-tertiary rounded-[6px] shadow-[0_4px_12px_rgba(0,0,0,0.5)] flex flex-col p-1 z-30 w-[130px] space-y-0.5"
-                      :class="[ idx >= filteredDeployments.length - 2 && idx > 0 ? 'bottom-full mb-1' : 'top-full mt-1' ]"
-                    >
-                      <!-- View Details link -->
-                      <button
-                        class="flex w-full items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] border-0 bg-transparent text-left cursor-pointer hover:bg-btn-hover hover:text-text-primary transition-colors"
-                        @click="openDropdown = null; inspectingUid = d.uid"
-                      >
-                        <Icon name="lucide:eye" class="h-3.5 w-3.5 text-zinc-500" />
-                        <span>View Details</span>
-                      </button>
-                      <!-- GitHub PR link -->
-                      <a
-                        :href="d.prUrl ?? undefined"
-                        :target="d.prUrl ? '_blank' : undefined"
-                        rel="noopener noreferrer"
-                        class="flex items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] no-underline hover:bg-btn-hover hover:text-text-primary transition-colors"
-                        :class="{ 'opacity-[0.35] cursor-default pointer-events-none': !d.prUrl }"
-                        :title="d.prUrl ? `View PR #${d.prId}` : 'No PR linked'"
-                        @click="!d.prUrl ? $event.preventDefault() : openDropdown = null"
-                      >
-                        <Icon name="ri:github-fill" class="h-3.5 w-3.5" />
-                        <span>{{ d.prUrl ? `PR #${d.prId}` : 'No PR linked' }}</span>
-                      </a>
-
-                      <!-- Jira Issue link -->
-                      <a
-                        :href="getJiraUrl(d.branch) ?? undefined"
-                        :target="getJiraUrl(d.branch) ? '_blank' : undefined"
-                        rel="noopener noreferrer"
-                        class="flex items-center text-text-secondary text-xs gap-1.5 px-2 py-[5.6px] rounded-[4px] no-underline hover:bg-btn-hover hover:text-text-primary transition-colors"
-                        :class="{ 'opacity-[0.35] cursor-default pointer-events-none': !getJiraTicket(d.branch) }"
-                        :title="getJiraTicket(d.branch) ? `View ${getJiraTicket(d.branch)} in Jira` : 'No Jira ticket in branch name'"
-                        @click="!getJiraUrl(d.branch) ? $event.preventDefault() : openDropdown = null"
-                      >
-                        <Icon name="logos:jira" class="h-3.5 w-3.5" />
-                        <span>{{ getJiraTicket(d.branch) ?? 'No Jira ticket' }}</span>
-                      </a>
-                    </div>
+                  <!-- GitHub PR link icon button -->
+                  <a
+                    v-if="d.prUrl"
+                    :href="d.prUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer p-[5px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
+                    title="View GitHub Pull Request"
+                  >
+                    <Icon name="ri:github-fill" class="h-[15px] w-[15px]" />
+                  </a>
+                  <div
+                    v-else
+                    class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-30 p-[5px]"
+                    title="No PR linked"
+                  >
+                    <Icon name="ri:github-fill" class="h-[15px] w-[15px]" />
                   </div>
+
+                  <!-- Jira Issue link icon button -->
+                  <a
+                    v-if="getJiraUrl(d.branch)"
+                    :href="getJiraUrl(d.branch)!"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer p-[5px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
+                    title="View Jira Ticket"
+                  >
+                    <Icon name="logos:jira" class="h-[15px] w-[15px]" />
+                  </a>
+                  <div
+                    v-else
+                    class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-30 p-[5px]"
+                    title="No Jira ticket"
+                  >
+                    <Icon name="logos:jira" class="h-[15px] w-[15px]" />
+                  </div>
+
+                  <button
+                    :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
+                    :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
+                    @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && forceDeploy($event, d.uid, d.branch!)"
+                    class=" inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[13px] gap-1.5 px-3 py-[3px] font-medium transition-colors hover:not-disabled:bg-btn-hover hover:not-disabled:border-border-focus hover:not-disabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
+                  >
+                    <Icon name="lucide:rocket" class="h-3.5 w-3.5" />
+                    <span>Deploy</span>
+                  </button>
                 </template>
               </div>
             </td>
