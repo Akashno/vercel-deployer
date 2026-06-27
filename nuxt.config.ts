@@ -15,6 +15,7 @@ export default defineNuxtConfig({
     authUsername: process.env.AUTH_USERNAME ?? '',
     authPassword: process.env.AUTH_PASSWORD ?? '',
     authSecret: process.env.AUTH_SECRET ?? '',
+    teamMembers: process.env.TEAM_MEMBERS ?? '',
     public: {
       jiraOrg: process.env.JIRA_ORG ?? '',
     },
