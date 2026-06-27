@@ -59,7 +59,6 @@ const data = computed(() => resData.value?.deployments ?? [])
 const project = computed(() => ({ name: resData.value?.projectName ?? '—' }))
 
 const inspectingUid = ref<string | null>(null)
-const openDropdown = ref<string | null>(null)
 const cancelling = ref<string | null>(null)
 const CANCELLABLE = new Set(['BUILDING', 'QUEUED', 'INITIALIZING'])
 const DEPLOYABLE = new Set(['CANCELED', 'BLOCKED'])
@@ -94,15 +93,11 @@ onMounted(() => {
     if (e.key === 'Escape') {
       if (confirmPending.value) confirmPending.value = null
       if (deployBranchDialog.value.open) deployBranchDialog.value.open = false
-      openDropdown.value = null
     }
   }
-  const onDocClick = () => { openDropdown.value = null }
   window.addEventListener('keydown', onKeydown)
-  document.addEventListener('click', onDocClick)
   onUnmounted(() => {
     window.removeEventListener('keydown', onKeydown)
-    document.removeEventListener('click', onDocClick)
   })
 })
 
