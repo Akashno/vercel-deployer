@@ -98,7 +98,7 @@ const showSettingsModal = ref(false)
       :fd-errors="fdErrors"
       v-model:collapsed="collapsed"
       @inspect="uid => inspectingUid = uid"
-      @cancel="(e, uid) => cancelDeployment(e, uid)"
+      @cancel="(e, uid) => cancelDeployment(uid)"
       @force-deploy="(e, uid, branch) => forceDeploy(e, uid, branch)"
     />
 
