@@ -51,8 +51,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="hasData" class="flex justify-between items-center flex-wrap gap-4 mb-4">
-    <div class="flex items-center gap-2 flex-wrap">
+  <div v-if="hasData" class="flex justify-between items-center flex-wrap gap-3 mb-4">
+    <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
       <!-- Search input -->
       <input
         ref="searchInput"
@@ -60,7 +60,7 @@ onMounted(() => {
         type="search"
         placeholder="Search branch, commit, author… (⌘K)"
         aria-label="Search deployments"
-        class="bg-input border border-border-primary focus:border-border-focus rounded-[6px] text-text-primary text-[13px] outline-none px-3 py-[6.4px] transition-colors placeholder-text-quaternary w-[300px]"
+        class="bg-input border border-border-primary focus:border-border-focus rounded-[6px] text-text-primary text-[13px] outline-none px-3 py-[6.4px] transition-colors placeholder-text-quaternary w-full sm:w-[300px]"
       />
 
       <!-- Status select -->
@@ -97,7 +97,7 @@ onMounted(() => {
       </button>
     </div>
 
-    <div class="flex items-center gap-[10px] h-fit">
+    <div class="flex items-center gap-[10px] h-fit shrink-0">
       <!-- Refresh button -->
       <button
         class="inline-flex items-center bg-card border border-border-primary rounded-[6px] text-text-primary cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:not-disabled:bg-btn hover:not-disabled:border-border-focus disabled:opacity-50 disabled:cursor-default"

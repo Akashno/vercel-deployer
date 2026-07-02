@@ -50,7 +50,7 @@ const showSettingsModal = ref(false)
 </script>
 
 <template>
-  <div class="max-w-[1400px] mx-auto py-8 px-6 text-text-primary min-h-screen">
+  <div class="max-w-[1400px] mx-auto py-5 px-4 sm:py-8 sm:px-6 text-text-primary min-h-screen">
     <!-- Header -->
     <DashboardHeader
       :project-name="projectName"
