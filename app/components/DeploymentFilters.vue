@@ -51,7 +51,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="hasData" class="flex justify-between items-center flex-wrap gap-3 mb-4">
+  <div v-if="hasData" class="flex flex-col sm:flex-row sm:justify-between sm:items-center flex-wrap gap-3 mb-4">
     <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
       <!-- Search input -->
       <input
@@ -97,10 +97,10 @@ onMounted(() => {
       </button>
     </div>
 
-    <div class="flex items-center gap-[10px] h-fit shrink-0">
+    <div class="flex items-center gap-2 w-full pt-3 mt-1 border-t border-border-secondary sm:w-fit sm:gap-[10px] sm:h-fit sm:pt-0 sm:mt-0 sm:border-t-0 sm:shrink-0">
       <!-- Refresh button -->
       <button
-        class="inline-flex items-center bg-card border border-border-primary rounded-[6px] text-text-primary cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:not-disabled:bg-btn hover:not-disabled:border-border-focus disabled:opacity-50 disabled:cursor-default"
+        class="inline-flex items-center justify-center flex-1 sm:flex-none bg-card border border-border-primary rounded-[6px] text-text-primary cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:not-disabled:bg-btn hover:not-disabled:border-border-focus disabled:opacity-50 disabled:cursor-default"
         :disabled="pending"
         @click="emit('refresh')"
       >
@@ -110,7 +110,7 @@ onMounted(() => {
 
       <!-- Deploy a Branch button -->
       <button
-        class="inline-flex items-center bg-blue-main border border-blue-main rounded-[6px] text-white cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:bg-blue-main-hover hover:border-blue-main-hover"
+        class="inline-flex items-center justify-center flex-1 sm:flex-none bg-blue-main border border-blue-main rounded-[6px] text-white cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:bg-blue-main-hover hover:border-blue-main-hover"
         @click="emit('deployBranch')"
       >
         <Icon name="lucide:rocket" class="h-4 w-4" />
