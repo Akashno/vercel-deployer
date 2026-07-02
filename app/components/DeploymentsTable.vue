@@ -90,9 +90,9 @@ const localCollapsed = computed({
 
 <template>
   <!-- Mobile card list (hidden on md+) -->
-  <div class="flex flex-col gap-3 md:hidden">
+  <div class="flex flex-col gap-2 md:hidden">
     <!-- Collapse toggle for mobile -->
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 mb-1">
       <button
         class="inline-flex items-center gap-1.5 bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[11px] px-2 py-[4px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
         :class="{ 'border-border-primary text-text-primary': localCollapsed }"
@@ -108,160 +108,139 @@ const localCollapsed = computed({
     <div
       v-for="d in deployments"
       :key="d.uid"
-      class="border border-border-secondary rounded-[8px] overflow-hidden"
-      :class="d._pending ? 'bg-orange-bg/10' : 'bg-card'"
+      class="border border-border-secondary rounded-[8px] px-4 py-3.5 flex flex-col gap-3"
+      :class="[d._pending ? 'bg-orange-bg/10' : 'bg-card', !d._pending && 'cursor-pointer active:opacity-80']"
+      @click="!d._pending && emit('inspect', d.uid)"
     >
-      <!-- Card top: branch + status -->
-      <div
-        class="flex items-start justify-between gap-3 px-4 pt-3.5 pb-2"
-        :class="d._pending ? '' : 'cursor-pointer'"
-        @click="!d._pending && emit('inspect', d.uid)"
-      >
+      <!-- Row 1: branch + status -->
+      <div class="flex items-start justify-between gap-3" @click.stop="!d._pending && emit('inspect', d.uid)">
         <div class="min-w-0 flex-1">
-          <div class="flex items-center flex-wrap gap-x-1.5 gap-y-1">
-            <span class="text-text-primary font-mono text-[13px] font-semibold truncate">{{ d.branch }}</span>
-            <span v-if="d.target === 'production'" class="bg-blue-bg border border-blue-border rounded-[3px] text-blue-text inline-block text-[11px] tracking-[0.04em] px-1.5 py-[1.6px] shrink-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-text-primary font-mono text-[13px] font-medium truncate">{{ d.branch }}</span>
+            <span v-if="d.target === 'production'" class="bg-blue-bg border border-blue-border rounded-[3px] text-blue-text text-[10px] tracking-[0.04em] px-1.5 py-[1px] shrink-0">
               Production
             </span>
           </div>
-          <div v-if="d.commitSha" class="flex items-center gap-[6.4px] mt-1.5 flex-wrap">
-            <code class="bg-btn border border-border-tertiary rounded-[3px] text-text-tertiary shrink-0 font-mono text-xs px-1.5 py-[0.8px]">
-              {{ d.commitSha.slice(0, 7) }}
-            </code>
-            <button
-              @click.stop="copySha($event, d.commitSha, d.uid)"
-              class="bg-transparent border-0 text-text-quaternary cursor-pointer inline-flex p-[1.6px] transition-colors hover:text-text-secondary"
-              :class="{ 'text-green-text': copied === `${d.uid}-sha` }"
-              :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy commit SHA'"
-            >
-              <Icon v-if="copied !== `${d.uid}-sha`" name="lucide:copy" class="h-2.5 w-2.5" />
-              <Icon v-else name="lucide:check" class="h-2.5 w-2.5 text-green-text" />
-            </button>
-            <span class="text-text-tertiary text-[12px] truncate max-w-[200px]" :class="{ 'italic': d._pending }">
-              {{ d.commitMessage }}
-            </span>
-          </div>
+          <p v-if="d.commitMessage" class="text-text-tertiary text-[12px] mt-1 line-clamp-1" :class="{ 'italic': d._pending }">
+            {{ d.commitMessage }}
+          </p>
         </div>
-        <!-- Status badge top-right -->
-        <div class="flex items-center gap-2 shrink-0 mt-0.5">
-          <DeploymentStatusBadge :state="d.state" :pulse="d._pending" />
-        </div>
+        <DeploymentStatusBadge :state="d.state" :pulse="d._pending" class="shrink-0 mt-0.5" />
       </div>
 
-      <!-- Divider -->
-      <div class="border-t border-border-secondary/60 mx-4" />
+      <!-- Row 2: meta — author · sha · time -->
+      <div class="flex items-center gap-2 text-[12px] text-text-tertiary" @click.stop>
+        <!-- Author -->
+        <template v-if="d.deployer">
+          <Icon name="lucide:user" class="h-3 w-3 shrink-0" />
+          <span class="truncate max-w-[100px]">{{ d.deployer }}</span>
+        </template>
+        <template v-else>
+          <img
+            v-if="d.commitAuthor && !avatarErrors[d.uid]"
+            :src="`https://github.com/${d.commitAuthor.replace(/\[bot\]$/, '')}.png?size=32`"
+            :alt="d.commitAuthor"
+            @error="avatarErrors[d.uid] = true"
+            class="rounded-full h-4 w-4 ring-1 ring-border-primary shrink-0"
+          />
+          <Icon v-else-if="d.commitAuthor" name="ri:github-fill" class="h-3.5 w-3.5 shrink-0" />
+          <span class="truncate max-w-[100px]">{{ d.commitAuthor || '—' }}</span>
+        </template>
 
-      <!-- Card bottom row: author + time + actions -->
-      <div class="flex items-center justify-between gap-3 px-4 py-3" @click.stop>
-        <!-- Left: author + time -->
-        <div class="flex items-center gap-3 min-w-0">
-          <!-- Author -->
-          <div class="flex items-center gap-1.5 min-w-0">
-            <template v-if="d.deployer">
-              <div class="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-950 border border-border-primary flex items-center justify-center text-text-secondary shrink-0">
-                <Icon name="lucide:user" class="h-3 w-3" />
-              </div>
-              <span class="text-text-secondary text-[12px] truncate max-w-[90px]">{{ d.deployer }}</span>
-            </template>
-            <template v-else>
-              <img
-                v-if="d.commitAuthor && !avatarErrors[d.uid]"
-                :src="`https://github.com/${d.commitAuthor.replace(/\[bot\]$/, '')}.png?size=32`"
-                :alt="d.commitAuthor"
-                @error="avatarErrors[d.uid] = true"
-                class="rounded-full h-5 w-5 ring-1 ring-border-primary shrink-0"
-              />
-              <div v-else-if="d.commitAuthor" class="w-5 h-5 rounded-full bg-card flex items-center justify-center text-text-tertiary shrink-0 border border-border-secondary">
-                <Icon name="ri:github-fill" class="h-3 w-3" />
-              </div>
-              <span class="text-text-secondary text-[12px] truncate max-w-[90px]">{{ d.commitAuthor || '—' }}</span>
-            </template>
+        <span class="text-text-quaternary">·</span>
+
+        <!-- SHA with copy -->
+        <template v-if="d.commitSha">
+          <code class="font-mono text-[11px] text-text-quaternary">{{ d.commitSha.slice(0, 7) }}</code>
+          <button
+            @click.stop="copySha($event, d.commitSha, d.uid)"
+            class="bg-transparent border-0 text-text-quaternary cursor-pointer inline-flex p-0 transition-colors hover:text-text-secondary"
+            :class="{ 'text-green-text': copied === `${d.uid}-sha` }"
+            :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy SHA'"
+          >
+            <Icon v-if="copied !== `${d.uid}-sha`" name="lucide:copy" class="h-2.5 w-2.5" />
+            <Icon v-else name="lucide:check" class="h-2.5 w-2.5 text-green-text" />
+          </button>
+          <span class="text-text-quaternary">·</span>
+        </template>
+
+        <!-- Time -->
+        <span class="shrink-0">{{ getCreatedAtTime(d.createdAt) }}</span>
+      </div>
+
+      <!-- Row 3: actions -->
+      <div class="flex items-center gap-2" @click.stop>
+        <template v-if="d._pending">
+          <div v-if="!d._githubRunUrl && d.state !== 'ERROR'">
+            <Icon name="lucide:loader-2" class="animate-spin h-3.5 w-3.5 text-zinc-500" />
           </div>
-          <!-- Time -->
-          <div class="text-text-tertiary text-[12px] whitespace-nowrap shrink-0">
-            {{ getCreatedAtTime(d.createdAt) }}
+          <a
+            v-else-if="d._githubRunUrl"
+            :href="d._githubRunUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block text-[10px] font-semibold tracking-wide border rounded-[4px] px-2 py-[2.4px] transition-colors"
+            :class="d.state === 'ERROR' ? 'bg-red-bg border-red-border text-red-text' : 'bg-orange-bg border-orange-border text-orange-text'"
+          >
+            {{ d.state === 'ERROR' ? 'View failure ↗' : 'View run ↗' }}
+          </a>
+        </template>
+
+        <template v-else>
+          <span v-if="fdErrors[d.uid]" class="text-[10px] font-semibold bg-red-bg border border-red-border text-red-text rounded-[4px] px-2 py-[2.4px]" :title="fdErrors[d.uid]">
+            Error
+          </span>
+
+          <button
+            v-if="CANCELLABLE.has(d.state?.toUpperCase())"
+            :disabled="cancelling === d.uid"
+            @click.stop="emit('cancel', $event, d.uid)"
+            class="bg-transparent border border-red-border rounded-[4px] text-red-text cursor-pointer text-[11px] px-2 py-[3px] whitespace-nowrap transition-colors hover:bg-red-bg disabled:opacity-50"
+          >
+            {{ cancelling === d.uid ? '…' : 'Cancel' }}
+          </button>
+
+          <!-- PR -->
+          <a
+            v-if="d.prUrl"
+            :href="d.prUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary p-[5px] transition-colors hover:bg-btn-hover hover:text-text-primary"
+            title="View GitHub Pull Request"
+          >
+            <Icon name="ri:github-fill" class="h-[14px] w-[14px]" />
+          </a>
+          <div v-else class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-25 p-[5px]" title="No PR">
+            <Icon name="ri:github-fill" class="h-[14px] w-[14px]" />
           </div>
-        </div>
 
-        <!-- Right: action buttons -->
-        <div class="flex items-center gap-1.5 shrink-0">
-          <template v-if="d._pending">
-            <div v-if="!d._githubRunUrl && d.state !== 'ERROR'" class="p-[2.4px]">
-              <Icon name="lucide:loader-2" class="animate-spin h-3.5 w-3.5 text-zinc-500" />
-            </div>
-            <a
-              v-else-if="d._githubRunUrl"
-              :href="d._githubRunUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-block text-[10px] font-semibold tracking-wide border rounded-[4px] px-2 py-[2.4px] transition-colors"
-              :class="d.state === 'ERROR' ? 'bg-red-bg border-red-border text-red-text hover:bg-red-bg/80' : 'bg-orange-bg border-orange-border text-orange-text hover:bg-orange-bg/80'"
-            >
-              {{ d.state === 'ERROR' ? 'View failure ↗' : 'View run ↗' }}
-            </a>
-          </template>
+          <!-- Jira -->
+          <a
+            v-if="getJiraUrl(d.branch)"
+            :href="getJiraUrl(d.branch)!"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary p-[5px] transition-colors hover:bg-btn-hover hover:text-text-primary"
+            title="View Jira Ticket"
+          >
+            <Icon name="logos:jira" class="h-[14px] w-[14px]" />
+          </a>
+          <div v-else class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-25 p-[5px]" title="No Jira">
+            <Icon name="logos:jira" class="h-[14px] w-[14px]" />
+          </div>
 
-          <template v-else>
-            <span v-if="fdErrors[d.uid]" class="inline-block text-[10px] font-semibold bg-red-bg border border-red-border text-red-text rounded-[4px] px-2 py-[2.4px]" :title="fdErrors[d.uid]">
-              Error
-            </span>
-
-            <button
-              v-if="CANCELLABLE.has(d.state?.toUpperCase())"
-              :disabled="cancelling === d.uid"
-              @click.stop="emit('cancel', $event, d.uid)"
-              class="bg-transparent border border-red-border rounded-[4px] text-red-text cursor-pointer text-[11px] px-1.5 py-[2.4px] whitespace-nowrap transition-colors hover:bg-red-bg hover:border-red-main disabled:opacity-50 disabled:cursor-default"
-            >
-              {{ cancelling === d.uid ? '…' : 'Cancel' }}
-            </button>
-
-            <a
-              v-if="d.prUrl"
-              :href="d.prUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer p-[5px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
-              title="View GitHub Pull Request"
-            >
-              <Icon name="ri:github-fill" class="h-[15px] w-[15px]" />
-            </a>
-            <div
-              v-else
-              class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-30 p-[5px]"
-              title="No PR linked"
-            >
-              <Icon name="ri:github-fill" class="h-[15px] w-[15px]" />
-            </div>
-
-            <a
-              v-if="getJiraUrl(d.branch)"
-              :href="getJiraUrl(d.branch)!"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer p-[5px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
-              title="View Jira Ticket"
-            >
-              <Icon name="logos:jira" class="h-[15px] w-[15px]" />
-            </a>
-            <div
-              v-else
-              class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-30 p-[5px]"
-              title="No Jira ticket"
-            >
-              <Icon name="logos:jira" class="h-[15px] w-[15px]" />
-            </div>
-
-            <button
-              :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
-              :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
-              @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && emit('forceDeploy', $event, d.uid, d.branch!)"
-              class="inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[12px] gap-1 px-2 py-[3px] font-medium transition-colors hover:enabled:bg-btn-hover hover:enabled:border-border-focus hover:enabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
-            >
-              <Icon name="lucide:rocket" class="h-3 w-3" />
-              <span>Deploy</span>
-            </button>
-          </template>
-        </div>
+          <!-- Deploy -->
+          <button
+            :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
+            :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
+            @click.stop="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && emit('forceDeploy', $event, d.uid, d.branch!)"
+            class="inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary text-[12px] gap-1 px-2.5 py-[3px] font-medium transition-colors hover:enabled:bg-btn-hover hover:enabled:border-border-focus hover:enabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
+          >
+            <Icon name="lucide:rocket" class="h-3 w-3" />
+            <span>Deploy</span>
+          </button>
+        </template>
       </div>
     </div>
   </div>
