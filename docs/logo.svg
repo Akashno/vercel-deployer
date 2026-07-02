@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Deployed Active App (Hovering Cap) -->
+  <path d="M 50 10 L 80 25 L 50 40 L 20 25 Z" fill="white" fill-opacity="0.15" />
+  <!-- Host Server/Platform (Base) -->
+  <path d="M 20 48 V 73 L 50 88 L 80 73 V 48" />
+  <path d="M 20 48 L 50 63 L 80 48" />
+  <path d="M 50 63 V 88" />
+</svg>
