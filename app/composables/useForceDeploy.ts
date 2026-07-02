@@ -132,13 +132,8 @@ export function useForceDeploy(
     }, 90_000)
   }
 
-  async function openDeployBranchDialog() {
-    let prefill = ''
-    try {
-      const text = await navigator.clipboard.readText()
-      if (text && !text.includes('\n') && text.length < 200) prefill = text.trim()
-    } catch {}
-    deployBranchDialog.value = { open: true, selectedBranch: prefill }
+  function openDeployBranchDialog() {
+    deployBranchDialog.value = { open: true, selectedBranch: '' }
   }
 
   async function handleDeployBranch(branchName: string) {

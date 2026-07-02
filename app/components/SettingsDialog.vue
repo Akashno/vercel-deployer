@@ -145,19 +145,19 @@ onUnmounted(() => {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
         @click.self="close"
       >
-        <div class="bg-card border border-border-primary rounded-[12px] w-[780px] h-[560px] max-w-[95vw] max-h-[90vh] shadow-2xl overflow-hidden flex flex-col">
+        <div class="bg-card border border-border-primary rounded-[12px] w-[780px] h-[90vh] sm:h-[560px] max-w-[95vw] max-h-[90vh] shadow-2xl overflow-hidden flex flex-col">
           <!-- Modal Header -->
-          <div class="px-5 py-4 border-b border-border-primary flex items-center justify-between">
+          <div class="px-5 py-4 border-b border-border-primary flex items-center justify-between shrink-0">
             <span class="text-sm font-semibold text-text-primary">Dashboard Settings</span>
             <button @click="close" class="text-text-tertiary hover:text-text-primary text-sm">✕</button>
           </div>
 
           <!-- Modal Body -->
-          <div class="flex flex-1 overflow-hidden">
+          <div class="flex flex-col sm:flex-row flex-1 overflow-hidden">
             <!-- Sidebar tabs -->
-            <div class="w-1/3 border-r border-border-primary bg-zinc-950/20 p-2.5 flex flex-col gap-1">
+            <div class="flex flex-row sm:flex-col gap-1 border-b sm:border-b-0 sm:border-r border-border-primary bg-zinc-950/20 p-2 sm:p-2.5 sm:w-1/3 shrink-0 overflow-x-auto">
               <button
-                class="w-full text-left px-3 py-2 rounded-[6px] text-xs font-medium transition-colors"
+                class="flex-1 sm:w-full text-center sm:text-left px-3 py-2 rounded-[6px] text-xs font-medium transition-colors whitespace-nowrap"
                 :class="settingsTab === 'general' ? 'bg-btn text-text-primary' : 'text-text-secondary hover:bg-btn/50 hover:text-text-primary'"
                 @click="settingsTab = 'general'"
               >
@@ -165,7 +165,7 @@ onUnmounted(() => {
               </button>
               <button
                 v-if="isSuperAdminUser"
-                class="w-full text-left px-3 py-2 rounded-[6px] text-xs font-medium transition-colors"
+                class="flex-1 sm:w-full text-center sm:text-left px-3 py-2 rounded-[6px] text-xs font-medium transition-colors whitespace-nowrap"
                 :class="settingsTab === 'team' ? 'bg-btn text-text-primary' : 'text-text-secondary hover:bg-btn/50 hover:text-text-primary'"
                 @click="settingsTab = 'team'"
               >
@@ -174,7 +174,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Tab Content -->
-            <div class="flex-1 p-5 overflow-y-auto flex flex-col gap-4">
+            <div class="flex-1 p-4 sm:p-5 overflow-y-auto flex flex-col gap-4 min-w-0">
               <!-- General Settings Tab -->
               <div v-if="settingsTab === 'general'" class="text-xs text-text-secondary leading-relaxed flex flex-col gap-4">
                 <div>
@@ -200,7 +200,7 @@ onUnmounted(() => {
                     <span class="w-4 h-4 rounded-full bg-blue-main text-white text-[9px] flex items-center justify-center shrink-0 font-bold">1</span>
                     Add Team Members
                   </div>
-                  <div class="flex gap-2">
+                  <div class="flex flex-col sm:flex-row gap-2">
                     <input
                       v-model="pendingEmail"
                       type="email"
@@ -208,26 +208,28 @@ onUnmounted(() => {
                       @keyup.enter="addPending"
                       class="flex-1 min-w-0 bg-input border border-border-primary focus:border-border-focus rounded-[6px] text-xs outline-none px-3 py-2 text-text-primary placeholder-text-quaternary"
                     />
-                    <div class="flex items-center border border-border-primary rounded-[6px] bg-input overflow-hidden focus-within:border-border-focus">
-                      <input
-                        v-model="pendingPassword"
-                        :type="showPasswords ? 'text' : 'password'"
-                        placeholder="Password"
-                        @keyup.enter="addPending"
-                        class="bg-transparent text-xs outline-none px-3 py-2 text-text-primary placeholder-text-quaternary w-[130px]"
-                      />
-                      <button type="button" @click="fillPassword" title="Generate password" class="px-2 py-2 text-text-tertiary hover:text-blue-text transition-colors border-l border-border-primary">
-                        <Icon name="lucide:refresh-cw" class="h-3 w-3" />
+                    <div class="flex gap-2">
+                      <div class="flex-1 sm:flex-none flex items-center border border-border-primary rounded-[6px] bg-input overflow-hidden focus-within:border-border-focus">
+                        <input
+                          v-model="pendingPassword"
+                          :type="showPasswords ? 'text' : 'password'"
+                          placeholder="Password"
+                          @keyup.enter="addPending"
+                          class="bg-transparent text-xs outline-none px-3 py-2 text-text-primary placeholder-text-quaternary w-full sm:w-[130px] min-w-0"
+                        />
+                        <button type="button" @click="fillPassword" title="Generate password" class="px-2 py-2 text-text-tertiary hover:text-blue-text transition-colors border-l border-border-primary shrink-0">
+                          <Icon name="lucide:refresh-cw" class="h-3 w-3" />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        @click="addPending"
+                        :disabled="!pendingEmail || !pendingPassword"
+                        class="bg-blue-main hover:bg-blue-main-hover text-white text-xs px-3.5 py-2 rounded-[6px] font-semibold transition-colors disabled:opacity-40 shrink-0"
+                      >
+                        Add
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      @click="addPending"
-                      :disabled="!pendingEmail || !pendingPassword"
-                      class="bg-blue-main hover:bg-blue-main-hover text-white text-xs px-3.5 py-2 rounded-[6px] font-semibold transition-colors disabled:opacity-40 shrink-0"
-                    >
-                      Add
-                    </button>
                   </div>
                   <div class="flex items-center gap-1.5">
                     <button type="button" @click="showPasswords = !showPasswords" class="text-[10px] text-text-tertiary hover:text-text-secondary transition-colors flex items-center gap-1">
@@ -252,34 +254,38 @@ onUnmounted(() => {
                     <!-- existing -->
                     <div
                       v-for="user in teamUsers" :key="'ex-' + user.email"
-                      class="flex items-center gap-2.5 px-3 py-2 text-xs bg-zinc-950/5"
+                      class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-2.5 text-xs bg-zinc-950/5"
                     >
                       <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-main to-purple-600 flex items-center justify-center text-white text-[9px] font-bold uppercase shrink-0">{{ user.email.slice(0,1) }}</div>
-                      <span class="text-text-primary truncate">{{ user.email }}</span>
-                      <span class="font-mono text-[10px] text-text-tertiary shrink-0 ml-auto mr-1">{{ showPasswords ? user.password : '••••••••' }}</span>
-                      <button @click="copyPassword(user.email, user.password)" class="text-text-tertiary hover:text-blue-text rounded p-0.5 transition-colors shrink-0 mr-1" :title="'Copy password'">
-                        <Icon :name="copiedPasswordEmail === user.email ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" :class="copiedPasswordEmail === user.email ? 'text-green-400' : ''" />
-                      </button>
-                      <span class="text-[10px] text-text-tertiary bg-zinc-950/20 rounded px-1.5 py-0.5 shrink-0">active</span>
-                      <button @click="removeExistingMember(user.email)" class="text-red-text hover:bg-red-bg rounded p-0.5 transition-colors shrink-0" title="Remove from env string">
+                      <span class="text-text-primary truncate flex-1 min-w-0">{{ user.email }}</span>
+                      <button @click="removeExistingMember(user.email)" class="text-red-text hover:bg-red-bg rounded p-0.5 transition-colors shrink-0 sm:order-last" title="Remove from env string">
                         <Icon name="lucide:x" class="h-3 w-3" />
                       </button>
+                      <div class="flex items-center gap-1.5 basis-full sm:basis-auto sm:ml-auto pl-[26px] sm:pl-0">
+                        <span class="font-mono text-[10px] text-text-tertiary shrink-0">{{ showPasswords ? user.password : '••••••••' }}</span>
+                        <button @click="copyPassword(user.email, user.password)" class="text-text-tertiary hover:text-blue-text rounded p-0.5 transition-colors shrink-0" :title="'Copy password'">
+                          <Icon :name="copiedPasswordEmail === user.email ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" :class="copiedPasswordEmail === user.email ? 'text-green-400' : ''" />
+                        </button>
+                        <span class="text-[10px] text-text-tertiary bg-zinc-950/20 rounded px-1.5 py-0.5 shrink-0">active</span>
+                      </div>
                     </div>
                     <!-- pending -->
                     <div
                       v-for="m in pendingMembers" :key="'pd-' + m.email"
-                      class="flex items-center gap-2.5 px-3 py-2 text-xs bg-blue-bg/30"
+                      class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-2.5 text-xs bg-blue-bg/30"
                     >
                       <div class="w-5 h-5 rounded-full bg-blue-main/40 border border-blue-border flex items-center justify-center text-blue-text text-[9px] font-bold uppercase shrink-0">{{ m.email.slice(0,1) }}</div>
-                      <span class="text-text-primary truncate">{{ m.email }}</span>
-                      <span class="font-mono text-[10px] text-text-tertiary shrink-0 ml-auto mr-1">{{ showPasswords ? m.password : '••••••••' }}</span>
-                      <button @click="copyPassword(m.email, m.password)" class="text-text-tertiary hover:text-blue-text rounded p-0.5 transition-colors shrink-0 mr-1" :title="'Copy password'">
-                        <Icon :name="copiedPasswordEmail === m.email ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" :class="copiedPasswordEmail === m.email ? 'text-green-400' : ''" />
-                      </button>
-                      <span class="text-[10px] text-blue-text bg-blue-bg rounded px-1.5 py-0.5 shrink-0 mr-1">new</span>
-                      <button @click="removeStagedMember(m.email)" class="text-red-text hover:bg-red-bg rounded p-0.5 transition-colors shrink-0" title="Remove">
+                      <span class="text-text-primary truncate flex-1 min-w-0">{{ m.email }}</span>
+                      <button @click="removeStagedMember(m.email)" class="text-red-text hover:bg-red-bg rounded p-0.5 transition-colors shrink-0 sm:order-last" title="Remove">
                         <Icon name="lucide:x" class="h-3 w-3" />
                       </button>
+                      <div class="flex items-center gap-1.5 basis-full sm:basis-auto sm:ml-auto pl-[26px] sm:pl-0">
+                        <span class="font-mono text-[10px] text-text-tertiary shrink-0">{{ showPasswords ? m.password : '••••••••' }}</span>
+                        <button @click="copyPassword(m.email, m.password)" class="text-text-tertiary hover:text-blue-text rounded p-0.5 transition-colors shrink-0" :title="'Copy password'">
+                          <Icon :name="copiedPasswordEmail === m.email ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" :class="copiedPasswordEmail === m.email ? 'text-green-400' : ''" />
+                        </button>
+                        <span class="text-[10px] text-blue-text bg-blue-bg rounded px-1.5 py-0.5 shrink-0">new</span>
+                      </div>
                     </div>
                   </div>
                   <div v-else class="text-xs text-text-tertiary py-3 text-center italic border border-border-primary rounded-[6px]">

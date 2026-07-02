@@ -2,6 +2,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-11-01',
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss', '@nuxt/icon'],
+  app: {
+    head: {
+      viewport: 'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content',
+    },
+  },
   runtimeConfig: {
     githubToken: process.env.GITHUB_TOKEN ?? '',
     githubOwner: process.env.GITHUB_OWNER ?? '',

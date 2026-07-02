@@ -71,11 +71,11 @@ onUnmounted(() => {
     >
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+        class="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 pt-[12vh] sm:pt-4 bg-black/60"
         @click.self="close"
       >
         <div
-          class="w-[calc(100%-2rem)] max-w-[380px] bg-card-modal border border-border-tertiary rounded-[10px] p-6 pt-7 shadow-2xl transform transition-all text-center"
+          class="w-[calc(100%-2rem)] max-w-[380px] max-h-[76vh] sm:max-h-[85vh] overflow-y-auto bg-card-modal border border-border-tertiary rounded-[10px] p-6 pt-7 shadow-2xl transform transition-all text-center"
           role="dialog"
           aria-modal="true"
         >
