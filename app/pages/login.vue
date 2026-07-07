@@ -6,13 +6,39 @@ const password = ref('')
 const error = ref('')
 const loading = ref(false)
 
+const passwordType = ref<'text' | 'password'>('password')
+const passwordInput = useTemplateRef<HTMLInputElement>('password-input')
+async function togglePasswordType() {
+  passwordType.value = (
+    passwordType.value === 'password'
+      ? 'text'
+      : 'password'
+  )
+
+  await nextTick()
+
+  const passwordLength = password.value.length
+  passwordInput.value?.focus()
+  passwordInput.value?.setSelectionRange(passwordLength, passwordLength)
+}
+const passwordInputIcon = computed(() => {
+  return (
+    passwordType.value === 'password'
+      ? 'lucide:eye'
+      : 'lucide:eye-off'
+  )
+})
+
 async function submit() {
   error.value = ''
   loading.value = true
   try {
     await $fetch('/api/auth/login', {
       method: 'POST',
-      body: { username: username.value, password: password.value },
+      body: {
+        username: username.value,
+        password: password.value,
+      },
     })
     await navigateTo('/')
   } catch (e: unknown) {
@@ -56,16 +82,26 @@ async function submit() {
 
         <div class="space-y-1.5">
           <label class="block text-[11px] font-bold uppercase tracking-wider text-text-tertiary" for="password">Password</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            autocomplete="current-password"
-            placeholder="••••••••"
-            :disabled="loading"
-            required
-            class="w-full bg-input border border-border-primary hover:border-border-focus focus:border-border-focus focus:ring-1 focus:ring-border-focus outline-none rounded-lg px-3 py-2 text-text-primary placeholder-text-quaternary text-sm transition-all disabled:opacity-50"
-          />
+          <div class="relative w-full">
+            <input
+              id="password"
+              v-model="password"
+              :type="passwordType"
+              autocomplete="current-password"
+              placeholder="••••••••"
+              ref="password-input"
+              :disabled="loading"
+              required
+              class="w-full bg-input border border-border-primary hover:border-border-focus focus:border-border-focus focus:ring-1 focus:ring-border-focus outline-none rounded-lg px-3 py-2 text-text-primary placeholder-text-quaternary text-sm transition-all disabled:opacity-50"
+            />
+            <button
+              type="button"
+              tabindex="-1"
+              class="absolute top-px right-px grid place-content-center size-9 border border-transparent bg-btn hover:bg-btn-hover rounded-lg"
+              @click="togglePasswordType">
+              <Icon :name="passwordInputIcon" />
+            </button>
+          </div>
         </div>
 
         <div v-if="error" class="bg-red-bg/10 border border-red-border/20 text-red-text text-xs rounded-lg p-3 leading-relaxed">
@@ -81,7 +117,9 @@ async function submit() {
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          <span>{{ loading ? 'Signing in…' : 'Sign in' }}</span>
+          <span>
+            {{ loading ? 'Signing In…' : 'Sign In' }}
+          </span>
         </button>
       </form>
     </div>
