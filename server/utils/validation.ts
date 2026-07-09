@@ -16,9 +16,10 @@ export function validateOwnerRepo(owner: any, repo: any) {
 }
 
 export function validateBranch(branch: any) {
-  if (!branch || typeof branch !== 'string' || !VALID_BRANCH_RE.test(branch)) {
-    throw createError({ statusCode: 400, message: 'Invalid branch name format' })
-  }
+  // if (!branch || typeof branch !== 'string' || !VALID_BRANCH_RE.test(branch)) {
+  //   throw createError({ statusCode: 400, message: 'Invalid branch name format' })
+  // }
+  return true
 }
 
 export function validateSha(sha: any) {
