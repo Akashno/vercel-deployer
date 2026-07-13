@@ -181,6 +181,12 @@ function openLink(url: string) {
   window.open(url, '_blank', 'noopener')
 }
 
+// Path appended to the deployment host to form the shareable preview URL.
+const PREVIEW_PATH = '/auth/login?redirect=/'
+const previewUrl = computed(() =>
+  data.value ? `https://${data.value.url}${PREVIEW_PATH}` : ''
+)
+
 const copied = ref<string | null>(null)
 async function copy(value: string, key: string) {
   await navigator.clipboard.writeText(value)
@@ -298,7 +304,7 @@ onMounted(() => {
                 <span class="text-text-quaternary font-medium uppercase tracking-[0.05em] w-20 shrink-0">Preview URL</span>
                 <a :href="`https://${data.url}`" target="_blank" rel="noopener" class="text-text-primary font-mono no-underline hover:underline hover:text-text-primary flex-1 truncate">{{ data.url }}</a>
                 <button
-                  @click="copy(data.url, 'url')"
+                  @click="copy(previewUrl, 'url')"
                   class="bg-transparent border border-border-primary rounded-[4px] text-text-tertiary px-1.5 py-[1px] cursor-pointer transition-colors hover:border-border-focus hover:text-text-secondary shrink-0"
                   :class="{ 'border-green-border text-green-text': copied === 'url' }"
                 >
