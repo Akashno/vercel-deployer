@@ -32,14 +32,7 @@ const emit = defineEmits<{
   (e: 'update:collapsed', value: boolean): void
 }>()
 
-const copied = ref<string | null>(null)
-
-async function copySha(e: MouseEvent, sha: string, uid: string) {
-  e.stopPropagation()
-  await navigator.clipboard.writeText(sha)
-  copied.value = `${uid}-sha`
-  setTimeout(() => { copied.value = null }, 1500)
-}
+const { copiedKey: copied, copy } = useCopy()
 
 const { public: { jiraOrg } } = useRuntimeConfig()
 
@@ -153,7 +146,7 @@ const localCollapsed = computed({
         <template v-if="d.commitSha">
           <code class="font-mono text-[11px] text-text-quaternary">{{ d.commitSha.slice(0, 7) }}</code>
           <button
-            @click.stop="copySha($event, d.commitSha, d.uid)"
+            @click.stop="copy(d.commitSha, `${d.uid}-sha`)"
             class="bg-transparent border-0 text-text-quaternary cursor-pointer inline-flex p-0 transition-colors hover:text-text-secondary"
             :class="{ 'text-green-text': copied === `${d.uid}-sha` }"
             :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy SHA'"
@@ -284,9 +277,19 @@ const localCollapsed = computed({
         >
           <!-- Branch / Commit Info -->
           <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-[13px] align-middle">
-            <div class="branch-row">
+            <div class="branch-row flex items-center gap-1.5">
               <span class="text-text-primary font-mono text-[13px] font-normal hover:underline">{{ d.branch }}</span>
-              <span v-if="d.target === 'production'" class="bg-blue-bg border border-blue-border rounded-[3px] text-blue-text inline-block text-[11px] tracking-[0.04em] px-1.5 py-[1.6px] ml-1.5">
+              <button
+                v-if="d.branch"
+                @click.stop="copy(d.branch, `${d.uid}-branch`)"
+                class="bg-transparent border-0 text-text-quaternary cursor-pointer inline-flex p-[1.6px] transition-colors hover:text-text-secondary shrink-0"
+                :class="{ 'text-green-text': copied === `${d.uid}-branch` }"
+                :title="copied === `${d.uid}-branch` ? 'Copied!' : 'Copy branch name'"
+              >
+                <Icon v-if="copied !== `${d.uid}-branch`" name="lucide:copy" class="h-2.5 w-2.5" />
+                <Icon v-else name="lucide:check" class="h-2.5 w-2.5 text-green-text" />
+              </button>
+              <span v-if="d.target === 'production'" class="bg-blue-bg border border-blue-border rounded-[3px] text-blue-text inline-block text-[11px] tracking-[0.04em] px-1.5 py-[1.6px]">
                 Production
               </span>
             </div>
@@ -295,7 +298,7 @@ const localCollapsed = computed({
                 {{ d.commitSha.slice(0, 7) }}
               </code>
               <button
-                @click="copySha($event, d.commitSha, d.uid)"
+                @click.stop="copy(d.commitSha, `${d.uid}-sha`)"
                 class="bg-transparent border-0 text-text-quaternary cursor-pointer inline-flex p-[1.6px] transition-colors hover:text-text-secondary"
                 :class="{ 'text-green-text': copied === `${d.uid}-sha` }"
                 :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy commit SHA'"
@@ -333,12 +336,12 @@ const localCollapsed = computed({
 
           <!-- Commit Author / Deployer -->
           <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-[13px] align-middle">
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 min-w-0">
               <template v-if="d.deployer">
                 <div class="w-4 h-4 rounded-full bg-zinc-100 dark:bg-zinc-950 border border-border-primary flex items-center justify-center text-text-secondary shrink-0">
                   <Icon name="lucide:user" class="h-2.5 w-2.5" />
                 </div>
-                <span class="text-text-secondary text-sm whitespace-nowrap">{{ d.deployer }}</span>
+                <span class="text-text-secondary text-sm truncate max-w-[180px]" :title="d.deployer">{{ d.deployer }}</span>
               </template>
               <template v-else>
                 <img
@@ -351,7 +354,7 @@ const localCollapsed = computed({
                 <div v-else-if="d.commitAuthor" class="w-4 h-4 rounded-full bg-card flex items-center justify-center text-text-tertiary shrink-0">
                   <Icon name="ri:github-fill" class="size-12" />
                 </div>
-                <span class="text-text-secondary text-sm whitespace-nowrap">{{ d.commitAuthor || '—' }}</span>
+                <span class="text-text-secondary text-sm truncate max-w-[180px]" :title="d.commitAuthor || undefined">{{ d.commitAuthor || '—' }}</span>
               </template>
             </div>
           </td>

@@ -21,9 +21,9 @@ const teamLoading = ref(false)
 const pendingEmail = ref('')
 const pendingPassword = ref('')
 const pendingMembers = ref<{ email: string; password: string }[]>([])
-const envCopied = ref(false)
 const showPasswords = ref(false)
-const copiedPasswordEmail = ref<string | null>(null)
+const { copiedKey: copiedPasswordEmail, copy: copyText } = useCopy(2000)
+const { isCopied: isEnvCopied, copy: copyEnvText } = useCopy(2500)
 
 function generatePassword(): string {
   const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#'
@@ -57,10 +57,7 @@ function removeExistingMember(email: string) {
 function copyPassword(email: string, password: string) {
   const origin = window.location.origin
   const text = `Login URL: ${origin}/login\nEmail: ${email}\nPassword: ${password}`
-  navigator.clipboard.writeText(text).then(() => {
-    copiedPasswordEmail.value = email
-    setTimeout(() => { copiedPasswordEmail.value = null }, 2000)
-  })
+  copyText(text, email)
 }
 
 // Generated env string: all existing + all staged
@@ -76,10 +73,7 @@ const generatedEnvValue = computed(() => {
 })
 
 function copyEnvString() {
-  navigator.clipboard.writeText(generatedEnvValue.value).then(() => {
-    envCopied.value = true
-    setTimeout(() => { envCopied.value = false }, 2500)
-  })
+  copyEnvText(generatedEnvValue.value, 'env')
 }
 
 async function fetchTeamUsers() {
@@ -307,10 +301,10 @@ onUnmounted(() => {
                       <button
                         @click="copyEnvString"
                         class="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-[6px] transition-colors shrink-0"
-                        :class="envCopied ? 'text-green-400 bg-green-950/40' : 'text-blue-text bg-blue-bg hover:bg-blue-border'"
+                        :class="isEnvCopied('env') ? 'text-green-400 bg-green-950/40' : 'text-blue-text bg-blue-bg hover:bg-blue-border'"
                       >
-                        <Icon :name="envCopied ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
-                        {{ envCopied ? 'Copied!' : 'Copy' }}
+                        <Icon :name="isEnvCopied('env') ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
+                        {{ isEnvCopied('env') ? 'Copied!' : 'Copy' }}
                       </button>
                     </div>
                     <div class="font-mono text-[10px] text-text-secondary bg-zinc-50 dark:bg-zinc-950/40 border border-border-secondary rounded-[6px] p-3 overflow-x-auto select-all whitespace-nowrap">
