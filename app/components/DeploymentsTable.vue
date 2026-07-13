@@ -32,21 +32,7 @@ const emit = defineEmits<{
   (e: 'update:collapsed', value: boolean): void
 }>()
 
-const copied = ref<string | null>(null)
-
-async function copySha(e: MouseEvent, sha: string, uid: string) {
-  e.stopPropagation()
-  await navigator.clipboard.writeText(sha)
-  copied.value = `${uid}-sha`
-  setTimeout(() => { copied.value = null }, 1500)
-}
-
-async function copyBranch(e: MouseEvent, branch: string, uid: string) {
-  e.stopPropagation()
-  await navigator.clipboard.writeText(branch)
-  copied.value = `${uid}-branch`
-  setTimeout(() => { copied.value = null }, 1500)
-}
+const { copiedKey: copied, copy } = useCopy()
 
 const { public: { jiraOrg } } = useRuntimeConfig()
 
@@ -160,7 +146,7 @@ const localCollapsed = computed({
         <template v-if="d.commitSha">
           <code class="font-mono text-[11px] text-text-quaternary">{{ d.commitSha.slice(0, 7) }}</code>
           <button
-            @click.stop="copySha($event, d.commitSha, d.uid)"
+            @click.stop="copy(d.commitSha, `${d.uid}-sha`)"
             class="bg-transparent border-0 text-text-quaternary cursor-pointer inline-flex p-0 transition-colors hover:text-text-secondary"
             :class="{ 'text-green-text': copied === `${d.uid}-sha` }"
             :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy SHA'"
@@ -295,7 +281,7 @@ const localCollapsed = computed({
               <span class="text-text-primary font-mono text-[13px] font-normal hover:underline">{{ d.branch }}</span>
               <button
                 v-if="d.branch"
-                @click.stop="copyBranch($event, d.branch, d.uid)"
+                @click.stop="copy(d.branch, `${d.uid}-branch`)"
                 class="bg-transparent border-0 text-text-quaternary cursor-pointer inline-flex p-[1.6px] transition-colors hover:text-text-secondary shrink-0"
                 :class="{ 'text-green-text': copied === `${d.uid}-branch` }"
                 :title="copied === `${d.uid}-branch` ? 'Copied!' : 'Copy branch name'"
@@ -312,7 +298,7 @@ const localCollapsed = computed({
                 {{ d.commitSha.slice(0, 7) }}
               </code>
               <button
-                @click="copySha($event, d.commitSha, d.uid)"
+                @click.stop="copy(d.commitSha, `${d.uid}-sha`)"
                 class="bg-transparent border-0 text-text-quaternary cursor-pointer inline-flex p-[1.6px] transition-colors hover:text-text-secondary"
                 :class="{ 'text-green-text': copied === `${d.uid}-sha` }"
                 :title="copied === `${d.uid}-sha` ? 'Copied!' : 'Copy commit SHA'"

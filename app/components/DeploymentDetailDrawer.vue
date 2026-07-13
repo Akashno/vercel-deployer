@@ -187,12 +187,7 @@ const previewUrl = computed(() =>
   data.value ? `https://${data.value.url}${PREVIEW_PATH}` : ''
 )
 
-const copied = ref<string | null>(null)
-async function copy(value: string, key: string) {
-  await navigator.clipboard.writeText(value)
-  copied.value = key
-  setTimeout(() => { copied.value = null }, 1500)
-}
+const { copiedKey: copied, copy } = useCopy()
 
 // Close on ESC
 onMounted(() => {
