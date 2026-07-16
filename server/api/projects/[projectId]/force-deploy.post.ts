@@ -1,5 +1,6 @@
-import { defineEventHandler, readBody, getCookie } from 'h3'
-import { githubApi } from '~~/server/utils/api'
+import { defineEventHandler, readBody, getCookie, getRouterParam, createError } from 'h3'
+import { createGithubApi } from '~~/server/utils/api'
+import { getProjectById } from '~~/server/utils/projects'
 import { validateBranch } from '~~/server/utils/validation'
 import { AUTH_COOKIE } from '~~/server/utils/auth'
 
@@ -24,6 +25,12 @@ interface GithubCommitResponse {
 }
 
 export default defineEventHandler(async (event) => {
+  const project = getProjectById(getRouterParam(event, 'projectId'))
+  if (!project) throw createError({ statusCode: 404, message: 'Project not found' })
+  if (!project.github) {
+    throw createError({ statusCode: 500, message: `Server configuration error: project "${project.id}" has no GitHub configuration` })
+  }
+
   const { branch } = await readBody<{ branch: string }>(event)
   validateBranch(branch)
 
@@ -31,6 +38,8 @@ export default defineEventHandler(async (event) => {
   const cookieVal = getCookie(event, AUTH_COOKIE)
   const separatorIndex = cookieVal ? cookieVal.indexOf(':') : -1
   const loggedInEmail = separatorIndex !== -1 ? cookieVal.substring(0, separatorIndex) : 'unknown'
+
+  const githubApi = createGithubApi(project)
 
   // 1. Get the latest commit SHA of the branch
   const refData = await githubApi<GithubRefResponse>(`/git/ref/heads/${branch}`)
@@ -68,10 +77,9 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  const config = useRuntimeConfig()
   return {
     ok: true,
     sha: newCommitSha,
-    url: `https://github.com/${config.githubOwner}/${config.githubRepo}/commit/${newCommitSha}`,
+    url: `https://github.com/${project.github.owner}/${project.github.repo}/commit/${newCommitSha}`,
   }
 })

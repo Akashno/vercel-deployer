@@ -1,8 +1,10 @@
-import { defineEventHandler, getQuery } from 'h3'
-import { vercelApi } from '~~/server/utils/api'
+import { defineEventHandler, getQuery, getRouterParam, createError } from 'h3'
+import { createVercelApi } from '~~/server/utils/api'
+import { getProjectById } from '~~/server/utils/projects'
 
 interface VercelDeployment {
   uid: string
+  name?: string
   state?: string
   readyState?: string
   target?: string
@@ -17,10 +19,14 @@ interface VercelResponse {
 }
 
 export default defineEventHandler(async (event) => {
+  const project = getProjectById(getRouterParam(event, 'projectId'))
+  if (!project) throw createError({ statusCode: 404, message: 'Project not found' })
+
   const query = getQuery(event)
   const collapse = query.collapse === 'true' || query.collapse === '1'
 
-  const data = await vercelApi<VercelResponse>('/deployments', {
+  const vercelApi = createVercelApi(project)
+  const data = await vercelApi<VercelResponse>('/v6/deployments', {
     query: { limit: '75' },
   })
 
@@ -101,7 +107,7 @@ export default defineEventHandler(async (event) => {
   })()
 
   return {
-    projectName: data.deployments[0]?.name ?? 'Vercel Project',
+    projectName: data.deployments[0]?.name ?? project.name,
     deployments,
   }
 })

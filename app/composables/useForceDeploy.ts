@@ -2,6 +2,7 @@ import type { Ref, ComputedRef } from 'vue'
 import type { Deployment } from './useDeployments'
 
 export function useForceDeploy(
+  projectId: Ref<string | null>,
   deployments: Ref<Deployment[]> | ComputedRef<Deployment[]>,
   refresh: () => Promise<any>
 ) {
@@ -36,11 +37,12 @@ export function useForceDeploy(
   }
 
   async function pollRunStatus(uid: string, branch: string) {
+    if (!projectId.value) return
     const since = fdDispatchedAt.get(uid) ?? Date.now()
     const sha = fdSha.get(uid) ?? ''
     try {
       type Run = { id: string | number; status: string; conclusion: string | null; html_url: string }
-      const run = await $fetch<Run | null>('/api/force-deploy/status', { query: { branch, sha, since } })
+      const run = await $fetch<Run | null>(`/api/projects/${projectId.value}/force-deploy/status`, { query: { branch, sha, since } })
       if (!run) return
 
       if (run.status === 'completed') {
@@ -76,6 +78,7 @@ export function useForceDeploy(
   }
 
   async function runForceDeploy(uid: string, branch: string) {
+    if (!projectId.value) return
     stopFdPoll(uid)
     delete fdErrors.value[uid]
 
@@ -101,7 +104,7 @@ export function useForceDeploy(
     fdDispatchedAt.set(uid, Date.now())
 
     try {
-      const res = await $fetch<{ ok: boolean; sha?: string; url?: string }>('/api/force-deploy', {
+      const res = await $fetch<{ ok: boolean; sha?: string; url?: string }>(`/api/projects/${projectId.value}/force-deploy`, {
         method: 'POST',
         body: { branch },
       })
@@ -141,6 +144,16 @@ export function useForceDeploy(
     await runForceDeploy(syntheticUid, branchName)
   }
 
+  // Clear all in-flight deploy state — used when the active project changes,
+  // since pending rows and pollers are scoped to the project they were dispatched on.
+  function resetForceDeploy() {
+    fdTimers.forEach((_, uid) => stopFdPoll(uid))
+    pendingDeployments.value = []
+    fdDispatchedAt.clear()
+    fdErrors.value = {}
+    confirmPending.value = null
+  }
+
   onUnmounted(() => {
     fdTimers.forEach((_, uid) => stopFdPoll(uid))
   })
@@ -154,5 +167,6 @@ export function useForceDeploy(
     confirmForceDeploy,
     openDeployBranchDialog,
     handleDeployBranch,
+    resetForceDeploy,
   }
 }

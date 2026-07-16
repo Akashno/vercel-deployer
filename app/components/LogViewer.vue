@@ -7,11 +7,12 @@ interface LogLine {
 
 const props = defineProps<{
   uid: string
+  projectId: string
 }>()
 
 const isLogsOpen = ref(false)
 const { data: logs, pending: logsPending, execute: fetchLogs } = useFetch<LogLine[]>(
-  `/api/deployments/${props.uid}/logs`,
+  `/api/projects/${props.projectId}/deployments/${props.uid}/logs`,
   { immediate: false, server: false }
 )
 

@@ -23,6 +23,7 @@ const props = defineProps<{
   cancelling: string | null
   fdErrors: Record<string, string>
   collapsed: boolean
+  jiraOrg: string | null
 }>()
 
 const emit = defineEmits<{
@@ -34,8 +35,6 @@ const emit = defineEmits<{
 
 const { copiedKey: copied, copy } = useCopy()
 
-const { public: { jiraOrg } } = useRuntimeConfig()
-
 const CANCELLABLE = new Set(['BUILDING', 'QUEUED', 'INITIALIZING'])
 const DEPLOYABLE = new Set(['CANCELED', 'BLOCKED'])
 
@@ -43,7 +42,7 @@ const avatarErrors = ref<Record<string, boolean>>({})
 
 function getJiraUrl(branch: string | null): string | null {
   const ticket = parseJiraKey(branch)
-  return ticket && jiraOrg ? `https://${jiraOrg}.atlassian.net/browse/${ticket}` : null
+  return ticket && props.jiraOrg ? `https://${props.jiraOrg}.atlassian.net/browse/${ticket}` : null
 }
 
 function isFdBusy(uid: string): boolean {

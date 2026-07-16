@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { projects, currentProjectId, currentProject, selectProject } = useProjects()
+
 const {
   projectName,
   deployments,
@@ -9,7 +11,7 @@ const {
   inspectingUid,
   cancelling,
   cancelDeployment,
-} = useDeployments()
+} = useDeployments(currentProjectId)
 
 const {
   pendingDeployments,
@@ -20,7 +22,8 @@ const {
   confirmForceDeploy,
   openDeployBranchDialog,
   handleDeployBranch,
-} = useForceDeploy(deployments, refresh)
+  resetForceDeploy,
+} = useForceDeploy(currentProjectId, deployments, refresh)
 
 const {
   search,
@@ -31,7 +34,15 @@ const {
   uniqueStatuses,
   uniqueAuthors,
   filteredDeployments,
-} = useDeploymentsFilters(deployments, pendingDeployments, collapsed, inspectingUid)
+} = useDeploymentsFilters(currentProjectId, deployments, pendingDeployments, collapsed, inspectingUid)
+
+// Switching projects (not the initial resolution) invalidates any deployment-specific view state
+watch(currentProjectId, (id, prevId) => {
+  if (prevId) {
+    inspectingUid.value = null
+    resetForceDeploy()
+  }
+})
 
 onMounted(() => {
   const onKeydown = (e: KeyboardEvent) => {
@@ -56,6 +67,9 @@ const showSettingsModal = ref(false)
       :project-name="projectName"
       :deployments-count="filteredDeployments.length"
       :has-data="!!deployments.length"
+      :projects="projects"
+      :current-project-id="currentProjectId"
+      @update:current-project-id="selectProject"
       @open-settings="showSettingsModal = true"
     />
 
@@ -75,10 +89,7 @@ const showSettingsModal = ref(false)
     />
 
     <!-- Loading / Empty states -->
-    <div v-if="pending && !deployments.length" class="flex flex-col items-center justify-center py-20 text-text-tertiary text-[15px] gap-3">
-      <Icon name="lucide:loader-2" class="animate-spin h-6 w-6 text-zinc-500" />
-      <span>Loading deployments…</span>
-    </div>
+    <DeploymentsTableSkeleton v-if="(pending || !currentProjectId) && !deployments.length" />
 
     <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-red-text text-[15px] gap-3">
       <Icon name="lucide:alert-triangle" class="h-6 w-6 text-rose-500" />
@@ -96,6 +107,7 @@ const showSettingsModal = ref(false)
       :pending-deployments="pendingDeployments"
       :cancelling="cancelling"
       :fd-errors="fdErrors"
+      :jira-org="currentProject?.jiraOrg ?? null"
       v-model:collapsed="collapsed"
       @inspect="uid => inspectingUid = uid"
       @cancel="(e, uid) => cancelDeployment(uid)"
@@ -118,6 +130,7 @@ const showSettingsModal = ref(false)
 
      <DeploymentDetailDrawer
       :uid="inspectingUid"
+      :project-id="currentProjectId"
       @close="inspectingUid = null"
     />
 

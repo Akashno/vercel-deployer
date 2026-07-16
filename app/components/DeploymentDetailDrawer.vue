@@ -55,6 +55,7 @@ interface JiraIssue {
 
 const props = defineProps<{
   uid: string | null
+  projectId: string | null
 }>()
 
 const emit = defineEmits<{
@@ -69,14 +70,14 @@ const pending = ref(false)
 const error = ref<any>(null)
 
 async function fetchDetails() {
-  if (!props.uid) {
+  if (!props.uid || !props.projectId) {
     data.value = null
     return
   }
   pending.value = true
   error.value = null
   try {
-    data.value = await $fetch<DeploymentDetail>(`/api/deployments/${props.uid}`)
+    data.value = await $fetch<DeploymentDetail>(`/api/projects/${props.projectId}/deployments/${props.uid}`)
   } catch (err: any) {
     error.value = err
   } finally {
@@ -85,10 +86,10 @@ async function fetchDetails() {
 }
 
 async function cancelDeployment() {
-  if (!props.uid) return
+  if (!props.uid || !props.projectId) return
   cancelling.value = true
   try {
-    await $fetch(`/api/deployments/${props.uid}/cancel`, { method: 'PATCH' })
+    await $fetch(`/api/projects/${props.projectId}/deployments/${props.uid}/cancel`, { method: 'PATCH' })
     await fetchDetails()
   } finally {
     cancelling.value = false
@@ -135,20 +136,20 @@ watch(data, async (d) => {
 
   const fetches: Promise<void>[] = []
 
-  if (d.prId && d.ghOrg && d.ghRepo) {
+  if (d.prId && d.ghOrg && d.ghRepo && props.projectId) {
     ghPrPending.value = true
     fetches.push(
-      $fetch<GhPr>('/api/github/pr', { query: { owner: d.ghOrg, repo: d.ghRepo, pr: d.prId, sha: d.commitSha ?? '' } })
+      $fetch<GhPr>(`/api/projects/${props.projectId}/github/pr`, { query: { owner: d.ghOrg, repo: d.ghRepo, pr: d.prId, sha: d.commitSha ?? '' } })
         .then(r => { ghPr.value = r })
         .catch(() => { ghPrError.value = true })
         .finally(() => { ghPrPending.value = false }),
     )
   }
 
-  if (jiraKey.value) {
+  if (jiraKey.value && props.projectId) {
     jiraPending.value = true
     fetches.push(
-      $fetch<JiraIssue>('/api/jira/issue', { query: { key: jiraKey.value } })
+      $fetch<JiraIssue>(`/api/projects/${props.projectId}/jira/issue`, { query: { key: jiraKey.value } })
         .then(r => { jiraIssue.value = r })
         .catch(() => { jiraError.value = true })
         .finally(() => { jiraPending.value = false }),
@@ -431,7 +432,7 @@ onMounted(() => {
             </div>
 
             <!-- Build Logs -->
-            <LogViewer :uid="props.uid!" />
+            <LogViewer :uid="props.uid!" :project-id="props.projectId!" />
           </template>
         </div>
       </div>
