@@ -1,6 +1,14 @@
+import { defineEventHandler, getQuery, getRouterParam, createError } from 'h3'
+import { getProjectById } from '~~/server/utils/projects'
 import { validateOwnerRepo, validateSha } from '~~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
+  const project = getProjectById(getRouterParam(event, 'projectId'))
+  if (!project) throw createError({ statusCode: 404, message: 'Project not found' })
+  if (!project.github) {
+    throw createError({ statusCode: 500, message: `Server configuration error: project "${project.id}" has no GitHub configuration` })
+  }
+
   const { owner, repo, pr, sha } = getQuery(event)
 
   validateOwnerRepo(owner, repo)
@@ -8,13 +16,11 @@ export default defineEventHandler(async (event) => {
   if (pr && !/^\d+$/.test(pr as string)) {
     throw createError({ statusCode: 400, message: 'Invalid pull request number format' })
   }
-
-  const config = useRuntimeConfig()
-  const token = config.githubToken
-  if (!token || !owner || !repo || !pr) {
-    throw createError({ statusCode: 400, message: 'Missing owner, repo, pr or GITHUB_TOKEN configuration' })
+  if (!owner || !repo || !pr) {
+    throw createError({ statusCode: 400, message: 'Missing owner, repo, or pr' })
   }
 
+  const token = project.github.token
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github+json',

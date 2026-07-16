@@ -1,5 +1,6 @@
-import { defineEventHandler, getQuery, createError } from 'h3'
-import { vercelApi } from '~~/server/utils/api'
+import { defineEventHandler, getQuery, getRouterParam, createError } from 'h3'
+import { createVercelApi } from '~~/server/utils/api'
+import { getProjectById } from '~~/server/utils/projects'
 import { validateBranch, validateSha } from '~~/server/utils/validation'
 
 interface VercelDeploymentMeta {
@@ -26,6 +27,9 @@ interface VercelDeploymentsResponse {
 }
 
 export default defineEventHandler(async (event) => {
+  const project = getProjectById(getRouterParam(event, 'projectId'))
+  if (!project) throw createError({ statusCode: 404, message: 'Project not found' })
+
   const { branch, sha, since } = getQuery(event) as { branch?: string; sha?: string; since?: string }
   validateBranch(branch)
   validateSha(sha)
@@ -33,13 +37,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid since timestamp format' })
   }
 
-  const config = useRuntimeConfig()
-  const owner = config.githubOwner
-  const repo = config.githubRepo
+  const owner = project.github?.owner
+  const repo = project.github?.repo
 
-  // Fetch recent deployments for the project using the shared vercelApi client
-  // projectId and teamId are automatically appended by the client's interceptor!
-  const data = await vercelApi<VercelDeploymentsResponse>('/deployments', {
+  const vercelApi = createVercelApi(project)
+  const data = await vercelApi<VercelDeploymentsResponse>('/v6/deployments', {
     query: { limit: '20' },
   })
 

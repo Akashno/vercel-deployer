@@ -11,21 +11,11 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    githubToken: process.env.GITHUB_TOKEN ?? '',
-    githubOwner: process.env.GITHUB_OWNER ?? '',
-    githubRepo: process.env.GITHUB_REPO ?? '',
-    projectToken: process.env.PROJECT_TOKEN ?? '',
-    projectId: process.env.PROJECT_ID ?? '',
-    teamId: process.env.TEAM_ID ?? '',
-    jiraOrg: process.env.JIRA_ORG ?? '',
-    jiraEmail: process.env.JIRA_EMAIL ?? '',
-    jiraApiToken: process.env.JIRA_API_TOKEN ?? '',
+    // All Vercel / GitHub / Jira config now lives per-project inside PROJECTS (a JSON array).
+    projects: process.env.PROJECTS ?? '',
     authUsername: process.env.AUTH_USERNAME ?? '',
     authPassword: process.env.AUTH_PASSWORD ?? '',
     authSecret: process.env.AUTH_SECRET ?? '',
     teamMembers: process.env.TEAM_MEMBERS ?? '',
-    public: {
-      jiraOrg: process.env.JIRA_ORG ?? '',
-    },
   },
 })

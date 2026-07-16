@@ -427,6 +427,21 @@
         stakeholders.</p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Feature: Multiple Projects -->
+        <div
+          class="bg-zinc-950 border border-zinc-900 rounded-xl p-6 hover:border-zinc-805 transition-all duration-350 group">
+          <div
+            class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 text-blue-400 flex items-center justify-center mb-5 group-hover:bg-gradient-to-br group-hover:from-blue-600 group-hover:to-purple-600 group-hover:text-white group-hover:border-transparent transition-all">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <h3 class="text-white font-semibold text-base mb-2">Multiple Projects, One Dashboard</h3>
+          <p class="text-zinc-400 text-sm leading-relaxed font-light">Monitor any number of Vercel projects and switch
+            between them instantly. Each project carries its own Vercel, GitHub, and Jira config — defined in a single
+            <code>PROJECTS</code> array.</p>
+        </div>
         <!-- Feature 1 -->
         <div
           class="bg-zinc-950 border border-zinc-900 rounded-xl p-6 hover:border-zinc-805 transition-all duration-350 group">
@@ -667,13 +682,11 @@
 
           <!-- Config Panel -->
           <div class="tab-panel" id="tab-config">
-            <div class="mb-1"><span class="text-zinc-600"># Vercel Configuration</span></div>
-            <div class="mb-1"><span class="text-blue-400">VERCEL_TOKEN</span>=<span
-                class="text-purple-400">"vcl_token_here"</span></div>
-            <div class="mb-1"><span class="text-blue-400">PROJECT_ID</span>=<span
-                class="text-purple-400">"prj_projectIdHere"</span></div>
-            <div class="mb-3"><span class="text-blue-400">TEAM_ID</span>=<span class="text-purple-400">""</span> <span
-                class="text-zinc-600"># If project is in a team</span></div>
+            <div class="mb-1"><span class="text-zinc-600"># Projects — one JSON array holds every project's</span></div>
+            <div class="mb-1"><span class="text-zinc-600"># Vercel / GitHub / Jira config. Add as many as you like.</span></div>
+            <div class="mb-1"><span class="text-zinc-600"># github &amp; jira are optional per project.</span></div>
+            <div class="mb-3"><span class="text-blue-400">PROJECTS</span>=<span
+                class="text-purple-400">[{"id":"main-app","name":"Main App","vercel":{"token":"vcp_...","projectId":"prj_...","teamId":""},"github":{"token":"github_pat_...","owner":"acme","repo":"main-app"},"jira":{"org":"acme","email":"bot@acme.com","apiToken":"..."}}]</span></div>
 
             <div class="mb-1"><span class="text-zinc-600"># Dashboard Authentication</span></div>
             <div class="mb-1"><span class="text-blue-400">AUTH_USERNAME</span>=<span
@@ -685,25 +698,8 @@
 
             <div class="mb-1"><span class="text-zinc-600"># Team Members (generate credentials from Dashboard → Settings
                 → Team Management)</span></div>
-            <div class="mb-3"><span class="text-blue-400">TEAM_MEMBERS</span>=<span
+            <div class="mb-1"><span class="text-blue-400">TEAM_MEMBERS</span>=<span
                 class="text-purple-400">"alex@company.com:pass123,qa@company.com:pass456"</span></div>
-
-            <div class="mb-1"><span class="text-zinc-600"># GitHub Integration (For seat-free force redeploys)</span>
-            </div>
-            <div class="mb-1"><span class="text-blue-400">GITHUB_TOKEN</span>=<span
-                class="text-purple-400">"github_pat_with_contents_write"</span></div>
-            <div class="mb-1"><span class="text-blue-400">GITHUB_OWNER</span>=<span
-                class="text-purple-400">"Akashno"</span></div>
-            <div class="mb-3"><span class="text-blue-400">GITHUB_REPO</span>=<span
-                class="text-purple-400">"vercel-deployments"</span></div>
-
-            <div class="mb-1"><span class="text-zinc-600"># Jira Integration (Optional)</span></div>
-            <div class="mb-1"><span class="text-blue-400">JIRA_ORG</span>=<span class="text-purple-400">"acme"</span>
-            </div>
-            <div class="mb-1"><span class="text-blue-400">JIRA_EMAIL</span>=<span
-                class="text-purple-400">"user@company.com"</span></div>
-            <div class="mb-1"><span class="text-blue-400">JIRA_API_TOKEN</span>=<span
-                class="text-purple-400">"jira_token_here"</span></div>
           </div>
 
           <!-- Run Panel -->

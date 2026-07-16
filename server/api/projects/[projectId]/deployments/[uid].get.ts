@@ -1,3 +1,6 @@
+import { defineEventHandler, getRouterParam, createError } from 'h3'
+import { createVercelApi } from '~~/server/utils/api'
+import { getProjectById } from '~~/server/utils/projects'
 import { validateUid } from '~~/server/utils/validation'
 
 interface VercelDeploymentDetail {
@@ -19,30 +22,14 @@ interface VercelDeploymentDetail {
 }
 
 export default defineEventHandler(async (event) => {
+  const project = getProjectById(getRouterParam(event, 'projectId'))
+  if (!project) throw createError({ statusCode: 404, message: 'Project not found' })
+
   const uid = getRouterParam(event, 'uid')
-
   validateUid(uid)
-  const config = useRuntimeConfig()
-  const token = config.projectToken
-  const teamId = config.teamId
 
-  if (!token) {
-    throw createError({ statusCode: 500, message: 'Missing PROJECT_TOKEN configuration' })
-  }
-
-  const url = new URL(`https://api.vercel.com/v13/deployments/${uid}`)
-  if (teamId) url.searchParams.set('teamId', teamId)
-
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw createError({ statusCode: res.status, message: `Vercel API error: ${res.statusText}. ${body}` })
-  }
-
-  const d: VercelDeploymentDetail = await res.json()
+  const vercelApi = createVercelApi(project)
+  const d = await vercelApi<VercelDeploymentDetail>(`/v13/deployments/${uid}`)
   const meta = d.meta ?? {}
 
   const branch =

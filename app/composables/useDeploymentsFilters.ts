@@ -2,6 +2,7 @@ import type { Ref, ComputedRef } from 'vue'
 import type { Deployment } from './useDeployments'
 
 export function useDeploymentsFilters(
+  projectId: Ref<string | null>,
   deployments: Ref<Deployment[]> | ComputedRef<Deployment[]>,
   pendingDeployments: Ref<Deployment[]> | ComputedRef<Deployment[]>,
   collapsed: Ref<boolean>,
@@ -16,6 +17,7 @@ export function useDeploymentsFilters(
 
   function syncUrl() {
     const query: Record<string, string> = {}
+    if (projectId.value) query.project = projectId.value
     if (search.value) query.q = search.value
     if (filterStatus.value) query.status = filterStatus.value
     if (filterAuthor.value) query.author = filterAuthor.value
@@ -25,7 +27,7 @@ export function useDeploymentsFilters(
   }
 
   // Watch filters to sync URLs
-  watch([filterStatus, filterAuthor, collapsed, inspectingUid], syncUrl)
+  watch([projectId, filterStatus, filterAuthor, collapsed, inspectingUid], syncUrl)
 
   // Debounce search URL sync
   let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -46,7 +48,7 @@ export function useDeploymentsFilters(
     search.value = ''
     filterStatus.value = ''
     filterAuthor.value = ''
-    router.replace({ query: {} })
+    syncUrl()
   }
 
   const uniqueStatuses = computed(() =>
