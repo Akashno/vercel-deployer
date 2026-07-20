@@ -1,7 +1,11 @@
+import tailwindcss from "@tailwindcss/vite";
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-11-01',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon'],
+  modules: [
+    '@nuxt/icon',
+  ],
   app: {
     head: {
       viewport: 'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content',
@@ -17,5 +21,13 @@ export default defineNuxtConfig({
     authPassword: process.env.AUTH_PASSWORD ?? '',
     authSecret: process.env.AUTH_SECRET ?? '',
     teamMembers: process.env.TEAM_MEMBERS ?? '',
+  },
+  css: [
+    '~/assets/css/tailwind.css',
+  ],
+  vite: {
+    plugins: [
+      tailwindcss(),
+    ],
   },
 })

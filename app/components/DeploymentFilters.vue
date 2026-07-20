@@ -60,14 +60,14 @@ onMounted(() => {
         type="search"
         placeholder="Search branch, commit, author… (⌘K)"
         aria-label="Search deployments"
-        class="bg-input border border-border-primary focus:border-border-focus rounded-[6px] text-text-primary text-[13px] outline-none px-3 py-[6.4px] transition-colors placeholder-text-quaternary w-full sm:w-[300px]"
+        class="bg-input border border-border-primary focus:border-border-focus rounded-md text-text-primary text-[13px] outline-hidden px-3 py-[6.4px] transition-colors placeholder-text-quaternary w-full sm:w-75"
       />
 
       <!-- Status select -->
       <div class="relative inline-block">
         <select
           v-model="localStatus"
-          class="appearance-none bg-input border focus:border-border-focus hover:border-border-focus rounded-[6px] cursor-pointer text-[13px] outline-none pl-3 pr-8 py-[6.4px] transition-colors bg-[right_0.6rem_center] bg-no-repeat select-custom-arrow"
+          class="appearance-none bg-input border focus:border-border-focus hover:border-border-focus rounded-md cursor-pointer text-[13px] outline-hidden pl-3 pr-8 py-[6.4px] transition-colors bg-position-[right_0.6rem_center] bg-no-repeat select-custom-arrow"
           :class="[ filterStatus ? 'border-blue-main text-text-primary' : 'border-border-primary text-text-secondary' ]"
         >
           <option value="">All statuses</option>
@@ -79,7 +79,7 @@ onMounted(() => {
       <div class="relative inline-block">
         <select
           v-model="localAuthor"
-          class="appearance-none bg-input border focus:border-border-focus hover:border-border-focus rounded-[6px] cursor-pointer text-[13px] outline-none pl-3 pr-8 py-[6.4px] transition-colors bg-[right_0.6rem_center] bg-no-repeat select-custom-arrow"
+          class="appearance-none bg-input border focus:border-border-focus hover:border-border-focus rounded-md cursor-pointer text-[13px] outline-hidden pl-3 pr-8 py-[6.4px] transition-colors bg-position-[right_0.6rem_center] bg-no-repeat select-custom-arrow"
           :class="[ filterAuthor ? 'border-blue-main text-text-primary' : 'border-border-primary text-text-secondary' ]"
         >
           <option value="">All authors</option>
@@ -91,16 +91,16 @@ onMounted(() => {
       <button
         v-if="hasFilters"
         @click="emit('clearFilters')"
-        class="inline-flex items-center bg-card border border-red-border rounded-[6px] text-red-text cursor-pointer text-[13px] gap-1.5 px-3 py-[6.4px] transition-colors hover:bg-red-bg hover:border-red-main"
+        class="inline-flex items-center bg-card border border-red-border rounded-md text-red-text cursor-pointer text-[13px] gap-1.5 px-3 py-[6.4px] transition-colors hover:bg-red-bg hover:border-red-main"
       >
         ✕ Clear
       </button>
     </div>
 
-    <div class="flex items-center gap-2 w-full pt-3 mt-1 border-t border-border-secondary sm:w-fit sm:gap-[10px] sm:h-fit sm:pt-0 sm:mt-0 sm:border-t-0 sm:shrink-0">
+    <div class="flex items-center gap-2 w-full pt-3 mt-1 border-t border-border-secondary sm:w-fit sm:gap-2.5 sm:h-fit sm:pt-0 sm:mt-0 sm:border-t-0 sm:shrink-0">
       <!-- Refresh button -->
       <button
-        class="inline-flex items-center justify-center flex-1 sm:flex-none bg-card border border-border-primary rounded-[6px] text-text-primary cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:not-disabled:bg-btn hover:not-disabled:border-border-focus disabled:opacity-50 disabled:cursor-default"
+        class="inline-flex items-center justify-center flex-1 sm:flex-none bg-card border border-border-primary rounded-md text-text-primary cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:not-disabled:bg-btn hover:not-disabled:border-border-focus disabled:opacity-50 disabled:cursor-default"
         :disabled="pending"
         @click="emit('refresh')"
       >
@@ -110,7 +110,7 @@ onMounted(() => {
 
       <!-- Deploy a Branch button -->
       <button
-        class="inline-flex items-center justify-center flex-1 sm:flex-none bg-blue-main border border-blue-main rounded-[6px] text-white cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:bg-blue-main-hover hover:border-blue-main-hover"
+        class="inline-flex items-center justify-center flex-1 sm:flex-none bg-blue-main border border-blue-main rounded-md text-white cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:bg-blue-main-hover hover:border-blue-main-hover"
         @click="emit('deployBranch')"
       >
         <Icon name="lucide:rocket" class="h-4 w-4" />

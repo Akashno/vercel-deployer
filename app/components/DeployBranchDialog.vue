@@ -75,7 +75,7 @@ onUnmounted(() => {
         @click.self="close"
       >
         <div
-          class="w-[calc(100%-2rem)] max-w-[380px] max-h-[76vh] sm:max-h-[85vh] overflow-y-auto bg-card-modal border border-border-tertiary rounded-[10px] p-6 pt-7 shadow-2xl transform transition-all text-center"
+          class="w-[calc(100%-2rem)] max-w-95 max-h-[76vh] sm:max-h-[85vh] overflow-y-auto bg-card-modal border border-border-tertiary rounded-[10px] p-6 pt-7 shadow-2xl transform transition-all text-center"
           role="dialog"
           aria-modal="true"
         >
@@ -100,21 +100,21 @@ onUnmounted(() => {
               autocomplete="off"
               spellcheck="false"
               required
-              class="bg-input border border-border-primary rounded-[6px] text-text-primary text-sm mb-6 outline-none px-3 py-2 transition-colors focus:border-border-focus placeholder-text-quaternary w-full"
+              class="bg-input border border-border-primary rounded-md text-text-primary text-sm mb-6 outline-hidden px-3 py-2 transition-colors focus:border-border-focus placeholder-text-quaternary w-full"
             />
 
             <div class="flex gap-2 justify-end">
               <button
                 type="button"
                 @click="close"
-                class="bg-transparent border border-border-primary rounded-[6px] text-text-tertiary text-sm px-3.5 py-[6.4px] transition-colors hover:border-border-focus hover:text-text-secondary cursor-pointer"
+                class="bg-transparent border border-border-primary rounded-md text-text-tertiary text-sm px-3.5 py-[6.4px] transition-colors hover:border-border-focus hover:text-text-secondary cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 :disabled="!branch.trim()"
-                class="bg-blue-main border border-blue-main rounded-[6px] text-white text-sm px-3.5 py-[6.4px] transition-colors hover:not-disabled:bg-blue-main-hover hover:not-disabled:border-blue-main-hover disabled:opacity-40 disabled:cursor-default cursor-pointer font-normal"
+                class="bg-blue-main border border-blue-main rounded-md text-white text-sm px-3.5 py-[6.4px] transition-colors hover:not-disabled:bg-blue-main-hover hover:not-disabled:border-blue-main-hover disabled:opacity-40 disabled:cursor-default cursor-pointer font-normal"
               >
                 Deploy
               </button>

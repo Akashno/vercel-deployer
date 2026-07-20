@@ -86,7 +86,7 @@ const localCollapsed = computed({
     <!-- Collapse toggle for mobile -->
     <div class="flex items-center gap-2 mb-1">
       <button
-        class="inline-flex items-center gap-1.5 bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[11px] px-2 py-[4px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
+        class="inline-flex items-center gap-1.5 bg-btn border border-border-tertiary rounded-sm text-text-secondary cursor-pointer text-[11px] px-2 py-1 transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
         :class="{ 'border-border-primary text-text-primary': localCollapsed }"
         :title="localCollapsed ? 'Expand branches (show all deployments)' : 'Collapse branches (latest per branch)'"
         @click.stop="localCollapsed = !localCollapsed"
@@ -100,7 +100,7 @@ const localCollapsed = computed({
     <div
       v-for="d in deployments"
       :key="d.uid"
-      class="border border-border-secondary rounded-[8px] px-4 py-3.5 flex flex-col gap-3"
+      class="border border-border-secondary rounded-lg px-4 py-3.5 flex flex-col gap-3"
       :class="[d._pending ? 'bg-orange-bg/10' : 'bg-card', !d._pending && 'cursor-pointer active:opacity-80']"
       @click="!d._pending && emit('inspect', d.uid)"
     >
@@ -109,11 +109,11 @@ const localCollapsed = computed({
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-text-primary font-mono text-[13px] font-medium truncate">{{ d.branch }}</span>
-            <span v-if="d.target === 'production'" class="bg-blue-bg border border-blue-border rounded-[3px] text-blue-text text-[10px] tracking-[0.04em] px-1.5 py-[1px] shrink-0">
+            <span v-if="d.target === 'production'" class="bg-blue-bg border border-blue-border rounded-[3px] text-blue-text text-[10px] tracking-[0.04em] px-1.5 py-px shrink-0">
               Production
             </span>
           </div>
-          <p v-if="d.commitMessage" class="text-text-tertiary text-[12px] mt-1 line-clamp-1" :class="{ 'italic': d._pending }">
+          <p v-if="d.commitMessage" class="text-text-tertiary text-xs mt-1 line-clamp-1" :class="{ 'italic': d._pending }">
             {{ d.commitMessage }}
           </p>
         </div>
@@ -121,11 +121,11 @@ const localCollapsed = computed({
       </div>
 
       <!-- Row 2: meta — author · sha · time -->
-      <div class="flex items-center gap-2 text-[12px] text-text-tertiary" @click.stop>
+      <div class="flex items-center gap-2 text-xs text-text-tertiary" @click.stop>
         <!-- Author -->
         <template v-if="d.deployer">
           <Icon name="lucide:user" class="h-3 w-3 shrink-0" />
-          <span class="truncate max-w-[100px]">{{ d.deployer }}</span>
+          <span class="truncate max-w-25">{{ d.deployer }}</span>
         </template>
         <template v-else>
           <img
@@ -136,7 +136,7 @@ const localCollapsed = computed({
             class="rounded-full h-4 w-4 ring-1 ring-border-primary shrink-0"
           />
           <Icon v-else-if="d.commitAuthor" name="ri:github-fill" class="h-3.5 w-3.5 shrink-0" />
-          <span class="truncate max-w-[100px]">{{ d.commitAuthor || '—' }}</span>
+          <span class="truncate max-w-25">{{ d.commitAuthor || '—' }}</span>
         </template>
 
         <span class="text-text-quaternary">·</span>
@@ -171,7 +171,7 @@ const localCollapsed = computed({
             :href="d._githubRunUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-block text-[10px] font-semibold tracking-wide border rounded-[4px] px-2 py-[2.4px] transition-colors"
+            class="inline-block text-[10px] font-semibold tracking-wide border rounded-sm px-2 py-[2.4px] transition-colors"
             :class="d.state === 'ERROR' ? 'bg-red-bg border-red-border text-red-text' : 'bg-orange-bg border-orange-border text-orange-text'"
           >
             {{ d.state === 'ERROR' ? 'View failure ↗' : 'View run ↗' }}
@@ -179,7 +179,7 @@ const localCollapsed = computed({
         </template>
 
         <template v-else>
-          <span v-if="fdErrors[d.uid]" class="text-[10px] font-semibold bg-red-bg border border-red-border text-red-text rounded-[4px] px-2 py-[2.4px]" :title="fdErrors[d.uid]">
+          <span v-if="fdErrors[d.uid]" class="text-[10px] font-semibold bg-red-bg border border-red-border text-red-text rounded-sm px-2 py-[2.4px]" :title="fdErrors[d.uid]">
             Error
           </span>
 
@@ -187,7 +187,7 @@ const localCollapsed = computed({
             v-if="CANCELLABLE.has(d.state?.toUpperCase())"
             :disabled="cancelling === d.uid"
             @click.stop="emit('cancel', $event, d.uid)"
-            class="bg-transparent border border-red-border rounded-[4px] text-red-text cursor-pointer text-[11px] px-2 py-[3px] whitespace-nowrap transition-colors hover:bg-red-bg disabled:opacity-50"
+            class="bg-transparent border border-red-border rounded-sm text-red-text cursor-pointer text-[11px] px-2 py-0.75 whitespace-nowrap transition-colors hover:bg-red-bg disabled:opacity-50"
           >
             {{ cancelling === d.uid ? '…' : 'Cancel' }}
           </button>
@@ -198,13 +198,13 @@ const localCollapsed = computed({
             :href="d.prUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary p-[5px] transition-colors hover:bg-btn-hover hover:text-text-primary"
+            class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-sm text-text-secondary p-1.25 transition-colors hover:bg-btn-hover hover:text-text-primary"
             title="View GitHub Pull Request"
           >
-            <Icon name="ri:github-fill" class="h-[14px] w-[14px]" />
+            <Icon name="ri:github-fill" class="h-3.5 w-3.5" />
           </a>
-          <div v-else class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-25 p-[5px]" title="No PR">
-            <Icon name="ri:github-fill" class="h-[14px] w-[14px]" />
+          <div v-else class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-sm text-text-quaternary opacity-25 p-1.25" title="No PR">
+            <Icon name="ri:github-fill" class="h-3.5 w-3.5" />
           </div>
 
           <!-- Jira -->
@@ -213,13 +213,13 @@ const localCollapsed = computed({
             :href="getJiraUrl(d.branch)!"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary p-[5px] transition-colors hover:bg-btn-hover hover:text-text-primary"
+            class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-sm text-text-secondary p-1.25 transition-colors hover:bg-btn-hover hover:text-text-primary"
             title="View Jira Ticket"
           >
-            <Icon name="logos:jira" class="h-[14px] w-[14px]" />
+            <Icon name="logos:jira" class="h-3.5 w-3.5" />
           </a>
-          <div v-else class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-25 p-[5px]" title="No Jira">
-            <Icon name="logos:jira" class="h-[14px] w-[14px]" />
+          <div v-else class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-sm text-text-quaternary opacity-25 p-1.25" title="No Jira">
+            <Icon name="logos:jira" class="h-3.5 w-3.5" />
           </div>
 
           <!-- Deploy -->
@@ -227,7 +227,7 @@ const localCollapsed = computed({
             :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
             :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
             @click.stop="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && emit('forceDeploy', $event, d.uid, d.branch!)"
-            class="inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary text-[12px] gap-1 px-2.5 py-[3px] font-medium transition-colors hover:enabled:bg-btn-hover hover:enabled:border-border-focus hover:enabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
+            class="inline-flex items-center bg-btn border border-border-tertiary rounded-sm text-text-secondary text-xs gap-1 px-2.5 py-0.75 font-medium transition-colors hover:enabled:bg-btn-hover hover:enabled:border-border-focus hover:enabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
           >
             <Icon name="lucide:rocket" class="h-3 w-3" />
             <span>Deploy</span>
@@ -238,14 +238,14 @@ const localCollapsed = computed({
   </div>
 
   <!-- Desktop table (hidden below md) -->
-  <div class="hidden md:block border border-border-secondary rounded-[8px] overflow-x-auto">
+  <div class="hidden md:block border border-border-secondary rounded-lg overflow-x-auto">
     <table class="table-auto border-collapse text-sm w-full">
       <thead>
         <tr class="border-b border-border-secondary">
           <th scope="col" class="text-text-tertiary text-[11px] font-medium tracking-[0.06em] px-4 py-2.5 text-left uppercase whitespace-nowrap">
             <div class="flex items-center gap-1.5">
               <button
-                class="inline-flex items-center bg-transparent border border-transparent rounded-[4px] text-text-quaternary cursor-pointer shrink-0 p-[2.4px] transition-colors hover:bg-btn hover:border-border-primary hover:text-text-secondary"
+                class="inline-flex items-center bg-transparent border border-transparent rounded-sm text-text-quaternary cursor-pointer shrink-0 p-[2.4px] transition-colors hover:bg-btn hover:border-border-primary hover:text-text-secondary"
                 :class="{ 'bg-btn border-border-primary text-text-primary': localCollapsed }"
                 :title="localCollapsed ? 'Expand branches (show all deployments)' : 'Collapse branches (latest per branch)'"
                 @click.stop="localCollapsed = !localCollapsed"
@@ -275,7 +275,7 @@ const localCollapsed = computed({
           :tabindex="d._pending ? -1 : 0"
         >
           <!-- Branch / Commit Info -->
-          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-[13px] align-middle">
+          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-3.25 align-middle">
             <div class="branch-row flex items-center gap-1.5">
               <span class="text-text-primary font-mono text-[13px] font-normal hover:underline">{{ d.branch }}</span>
               <button
@@ -305,14 +305,14 @@ const localCollapsed = computed({
                 <Icon v-if="copied !== `${d.uid}-sha`" name="lucide:copy" class="h-2.5 w-2.5" />
                 <Icon v-else name="lucide:check" class="h-2.5 w-2.5 text-green-text" />
               </button>
-              <span class="text-text-tertiary text-[13px] max-w-[300px] truncate" :class="{ 'text-text-tertiary/80 italic': d._pending }">
+              <span class="text-text-tertiary text-[13px] max-w-75 truncate" :class="{ 'text-text-tertiary/80 italic': d._pending }">
                 {{ d.commitMessage }}
               </span>
             </div>
           </td>
 
           <!-- Status -->
-          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-[13px] align-middle">
+          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-3.25 align-middle">
             <div class="flex items-center gap-2">
               <DeploymentStatusBadge :state="d.state" :pulse="d._pending" />
 
@@ -320,7 +320,7 @@ const localCollapsed = computed({
                 v-if="!d._pending && CANCELLABLE.has(d.state?.toUpperCase())"
                 :disabled="cancelling === d.uid"
                 @click.stop="emit('cancel', $event, d.uid)"
-                class="bg-transparent border border-red-border rounded-[4px] text-red-text cursor-pointer text-[11px] px-1.5 py-[2.4px] whitespace-nowrap transition-colors hover:bg-red-bg hover:border-red-main disabled:opacity-50 disabled:cursor-default"
+                class="bg-transparent border border-red-border rounded-sm text-red-text cursor-pointer text-[11px] px-1.5 py-[2.4px] whitespace-nowrap transition-colors hover:bg-red-bg hover:border-red-main disabled:opacity-50 disabled:cursor-default"
               >
                 {{ cancelling === d.uid ? '…' : 'Cancel' }}
               </button>
@@ -328,19 +328,19 @@ const localCollapsed = computed({
           </td>
 
           <!-- Created At -->
-          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-[13px] align-middle text-sm whitespace-nowrap">
+          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-3.25 align-middle text-sm whitespace-nowrap">
             <div class="text-text-primary font-normal leading-none mb-1">{{ getCreatedAtTime(d.createdAt) }}</div>
             <div class="text-text-tertiary text-xs font-normal" v-if="d.createdAt">{{ getCreatedAtDate(d.createdAt) }}</div>
           </td>
 
           <!-- Commit Author / Deployer -->
-          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-[13px] align-middle">
+          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-3.25 align-middle">
             <div class="flex items-center gap-1.5 min-w-0">
               <template v-if="d.deployer">
                 <div class="w-4 h-4 rounded-full bg-zinc-100 dark:bg-zinc-950 border border-border-primary flex items-center justify-center text-text-secondary shrink-0">
                   <Icon name="lucide:user" class="h-2.5 w-2.5" />
                 </div>
-                <span class="text-text-secondary text-sm truncate max-w-[180px]" :title="d.deployer">{{ d.deployer }}</span>
+                <span class="text-text-secondary text-sm truncate max-w-45" :title="d.deployer">{{ d.deployer }}</span>
               </template>
               <template v-else>
                 <img
@@ -353,13 +353,13 @@ const localCollapsed = computed({
                 <div v-else-if="d.commitAuthor" class="w-4 h-4 rounded-full bg-card flex items-center justify-center text-text-tertiary shrink-0">
                   <Icon name="ri:github-fill" class="size-12" />
                 </div>
-                <span class="text-text-secondary text-sm truncate max-w-[180px]" :title="d.commitAuthor || undefined">{{ d.commitAuthor || '—' }}</span>
+                <span class="text-text-secondary text-sm truncate max-w-45" :title="d.commitAuthor || undefined">{{ d.commitAuthor || '—' }}</span>
               </template>
             </div>
           </td>
 
           <!-- Actions -->
-          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-[13px] align-middle" @click.stop>
+          <td class="border-b border-border-secondary group-last:border-b-0 px-4 py-3.25 align-middle" @click.stop>
             <div class="flex items-center gap-2">
               <template v-if="d._pending">
                 <div v-if="!d._githubRunUrl && d.state !== 'ERROR'" class="p-[2.4px]">
@@ -370,7 +370,7 @@ const localCollapsed = computed({
                   :href="d._githubRunUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-block text-[10px] font-semibold tracking-wide border rounded-[4px] px-2 py-[2.4px] transition-colors"
+                  class="inline-block text-[10px] font-semibold tracking-wide border rounded-sm px-2 py-[2.4px] transition-colors"
                   :class="d.state === 'ERROR' ? 'bg-red-bg border-red-border text-red-text hover:bg-red-bg/80' : 'bg-orange-bg border-orange-border text-orange-text hover:bg-orange-bg/80'"
                 >
                   {{ d.state === 'ERROR' ? 'View failure ↗' : 'View run ↗' }}
@@ -378,7 +378,7 @@ const localCollapsed = computed({
               </template>
 
               <template v-else>
-                <span v-if="fdErrors[d.uid]" class="inline-block text-[10px] font-semibold bg-red-bg border border-red-border text-red-text rounded-[4px] px-2 py-[2.4px]" :title="fdErrors[d.uid]">
+                <span v-if="fdErrors[d.uid]" class="inline-block text-[10px] font-semibold bg-red-bg border border-red-border text-red-text rounded-sm px-2 py-[2.4px]" :title="fdErrors[d.uid]">
                   Error
                 </span>
 
@@ -387,17 +387,17 @@ const localCollapsed = computed({
                   :href="d.prUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer p-[5px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
+                  class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-sm text-text-secondary cursor-pointer p-1.25 transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
                   title="View GitHub Pull Request"
                 >
-                  <Icon name="ri:github-fill" class="h-[15px] w-[15px]" />
+                  <Icon name="ri:github-fill" class="h-3.75 w-3.75" />
                 </a>
                 <div
                   v-else
-                  class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-30 p-[5px]"
+                  class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-sm text-text-quaternary opacity-30 p-1.25"
                   title="No PR linked"
                 >
-                  <Icon name="ri:github-fill" class="h-[15px] w-[15px]" />
+                  <Icon name="ri:github-fill" class="h-3.75 w-3.75" />
                 </div>
 
                 <a
@@ -405,24 +405,24 @@ const localCollapsed = computed({
                   :href="getJiraUrl(d.branch)!"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer p-[5px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
+                  class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-sm text-text-secondary cursor-pointer p-1.25 transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary"
                   title="View Jira Ticket"
                 >
-                  <Icon name="logos:jira" class="h-[15px] w-[15px]" />
+                  <Icon name="logos:jira" class="h-3.75 w-3.75" />
                 </a>
                 <div
                   v-else
-                  class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-[4px] text-text-quaternary opacity-30 p-[5px]"
+                  class="inline-flex items-center justify-center bg-btn border border-border-tertiary rounded-sm text-text-quaternary opacity-30 p-1.25"
                   title="No Jira ticket"
                 >
-                  <Icon name="logos:jira" class="h-[15px] w-[15px]" />
+                  <Icon name="logos:jira" class="h-3.75 w-3.75" />
                 </div>
 
                 <button
                   :disabled="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) || isFdBusy(d.uid)"
                   :title="!d.branch || !DEPLOYABLE.has(d.state?.toUpperCase()) ? 'Not available' : `Deploy ${d.branch}`"
                   @click="d.branch && DEPLOYABLE.has(d.state?.toUpperCase()) && emit('forceDeploy', $event, d.uid, d.branch!)"
-                  class="inline-flex items-center bg-btn border border-border-tertiary rounded-[4px] text-text-secondary cursor-pointer text-[13px] gap-1.5 px-3 py-[3px] font-medium transition-colors hover:enabled:bg-btn-hover hover:enabled:border-border-focus hover:enabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
+                  class="inline-flex items-center bg-btn border border-border-tertiary rounded-sm text-text-secondary cursor-pointer text-[13px] gap-1.5 px-3 py-0.75 font-medium transition-colors hover:enabled:bg-btn-hover hover:enabled:border-border-focus hover:enabled:text-text-primary disabled:opacity-40 disabled:cursor-default"
                 >
                   <Icon name="lucide:rocket" class="h-3.5 w-3.5" />
                   <span>Deploy</span>

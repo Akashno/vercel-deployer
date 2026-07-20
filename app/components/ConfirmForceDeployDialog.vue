@@ -50,7 +50,7 @@ onUnmounted(() => {
         @click.self="close"
       >
         <div
-          class="w-[calc(100%-2rem)] max-w-[380px] bg-card-modal border border-border-tertiary rounded-[10px] p-6 pt-7 shadow-2xl transform transition-all text-center"
+          class="w-[calc(100%-2rem)] max-w-95 bg-card-modal border border-border-tertiary rounded-[10px] p-6 pt-7 shadow-2xl transform transition-all text-center"
           role="dialog"
           aria-modal="true"
         >
@@ -72,14 +72,14 @@ onUnmounted(() => {
             <button
               type="button"
               @click="close"
-              class="bg-transparent border border-border-primary rounded-[6px] text-text-tertiary text-sm px-3.5 py-[6.4px] transition-colors hover:border-border-focus hover:text-text-secondary cursor-pointer"
+              class="bg-transparent border border-border-primary rounded-md text-text-tertiary text-sm px-3.5 py-[6.4px] transition-colors hover:border-border-focus hover:text-text-secondary cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
               @click="confirm"
-              class="bg-btn border border-border-primary/80 rounded-[6px] text-text-secondary text-sm px-3.5 py-[6.4px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary cursor-pointer"
+              class="bg-btn border border-border-primary/80 rounded-md text-text-secondary text-sm px-3.5 py-[6.4px] transition-colors hover:bg-btn-hover hover:border-border-focus hover:text-text-primary cursor-pointer"
             >
               Deploy
             </button>

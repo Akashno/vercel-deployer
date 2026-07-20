@@ -52,7 +52,7 @@ async function submit() {
 
 <template>
   <div class="relative flex items-center justify-center min-h-screen bg-page p-6 overflow-hidden">
-    <div class="relative w-full max-w-sm dark:bg-gradient-to-br from-sky-400/40 via-page to-fuchsia-400/40 p-px rounded-2xl">
+    <div class="relative w-full max-w-sm dark:bg-linear-to-br from-sky-400/40 via-border to-fuchsia-400/40 p-px rounded-2xl">
       <!-- Glow effects -->
       <div class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 size-7/12 portrait:size-1/3 bg-sky-400/30 rounded-full blur-3xl" />
       <div class="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 size-7/12 portrait:size-1/3 bg-fuchsia-400/30 rounded-full blur-3xl" />
@@ -69,7 +69,11 @@ async function submit() {
   
         <form class="space-y-5" @submit.prevent="submit">
           <div class="space-y-1.5">
-            <label class="block text-[11px] font-bold uppercase tracking-wider text-text-tertiary" for="username">Username</label>
+            <label
+              class="block text-[11px] font-bold uppercase tracking-wider text-text-tertiary"
+              for="username">
+              Username
+            </label>
             <input
               id="username"
               v-model="username"
@@ -78,7 +82,7 @@ async function submit() {
               placeholder="username"
               :disabled="loading"
               required
-              class="w-full bg-input border border-border-primary hover:border-border-focus focus:border-border-focus focus:ring-1 focus:ring-border-focus outline-none rounded-lg px-3 py-2 text-text-primary placeholder-text-quaternary text-sm transition-all disabled:opacity-50"
+              class="w-full bg-input border border-border-primary hover:border-border-focus focus:border-border-focus focus:ring-1 focus:ring-border-focus outline-hidden rounded-lg px-3 py-2 text-text-primary placeholder-text-quaternary text-sm transition-all disabled:opacity-50"
             />
           </div>
   
@@ -94,7 +98,7 @@ async function submit() {
                 ref="password-input"
                 :disabled="loading"
                 required
-                class="w-full bg-input border border-border-primary hover:border-border-focus focus:border-border-focus focus:ring-1 focus:ring-border-focus outline-none rounded-lg px-3 py-2 text-text-primary placeholder-text-quaternary text-sm transition-all disabled:opacity-50"
+                class="w-full bg-input border border-border-primary hover:border-border-focus focus:border-border-focus focus:ring-1 focus:ring-border-focus outline-hidden rounded-lg px-3 py-2 text-text-primary placeholder-text-quaternary text-sm transition-all disabled:opacity-50"
               />
               <button
                 type="button"
