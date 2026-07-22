@@ -71,13 +71,17 @@ function scrollToLine(lineIndex: number) {
 function navigateError(dir: 1 | -1) {
   if (!errorIndices.value.length) return
   errorCursor.value = (errorCursor.value + dir + errorIndices.value.length) % errorIndices.value.length
-  scrollToLine(errorIndices.value[errorCursor.value])
+  const errorIndexValue = errorIndices.value[errorCursor.value]
+  if (errorIndexValue == undefined) return
+  scrollToLine(errorIndexValue)
 }
 
 function navigateWarn(dir: 1 | -1) {
   if (!warnIndices.value.length) return
   warnCursor.value = (warnCursor.value + dir + warnIndices.value.length) % warnIndices.value.length
-  scrollToLine(warnIndices.value[warnCursor.value])
+  const warnIndexValue = warnIndices.value[warnCursor.value]
+  if (warnIndexValue == undefined) return
+  scrollToLine(warnIndexValue)
 }
 
 function scrollToBottom() {
@@ -106,7 +110,7 @@ watch(logsPending, (pending) => {
 </script>
 
 <template>
-  <div class="border border-border-secondary rounded-[8px] overflow-hidden mt-6">
+  <div class="border border-border-secondary rounded-lg overflow-hidden mt-6">
     <!-- Header/Toggle Button -->
     <button
       @click="toggleLogs"
@@ -123,7 +127,7 @@ watch(logsPending, (pending) => {
         
         <Icon
           name="lucide:chevron-right"
-          class="text-text-quaternary text-[18px] transition-transform duration-200"
+          class="text-text-quaternary text-lg transition-transform duration-200"
           :class="{ 'rotate-90': isLogsOpen }"
         />
       </div>
@@ -138,7 +142,7 @@ watch(logsPending, (pending) => {
         v-model="logSearch"
         type="search"
         placeholder="Search logs…"
-        class="bg-input border border-border-primary focus:border-border-focus rounded-[5px] text-text-primary text-xs px-2.5 py-[4.8px] w-[200px] outline-none placeholder-text-quaternary transition-colors"
+        class="bg-input border border-border-primary focus:border-border-focus rounded-[5px] text-text-primary text-xs px-2.5 py-[4.8px] w-50 outline-hidden placeholder-text-quaternary transition-colors"
       />
       
       <div class="flex items-center gap-1.5 text-[11px] ml-auto">
@@ -198,7 +202,7 @@ watch(logsPending, (pending) => {
     <div
       v-if="isLogsOpen"
       ref="logsTerminal"
-      class="bg-page font-mono text-[13px] leading-[1.6] max-h-[600px] overflow-y-auto p-4 space-y-0.5"
+      class="bg-page font-mono text-[13px] leading-[1.6] max-h-150 overflow-y-auto p-4 space-y-0.5"
     >
       <div v-if="logsPending" class="text-text-quaternary py-8 text-center">Loading logs…</div>
       <div v-else-if="!filteredLogs.length" class="text-text-quaternary py-8 text-center">

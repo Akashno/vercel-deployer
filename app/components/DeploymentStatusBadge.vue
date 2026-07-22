@@ -66,7 +66,7 @@ const badgeConfig = computed(() => {
 
 <template>
   <span
-    class="inline-block px-2 py-[3.2px] rounded-[4px] text-[11px] font-semibold tracking-[0.07em] uppercase whitespace-nowrap transition-all duration-300"
+    class="inline-block px-2 py-[3.2px] rounded-sm text-[11px] font-semibold tracking-[0.07em] uppercase whitespace-nowrap transition-all duration-300"
     :class="[
       badgeConfig.bg,
       badgeConfig.text,

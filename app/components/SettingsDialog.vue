@@ -136,7 +136,7 @@ onUnmounted(() => {
     >
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs"
         @click.self="close"
       >
         <div class="bg-card border border-border-primary rounded-[12px] w-[780px] h-[90vh] sm:h-[560px] max-w-[95vw] max-h-[90vh] shadow-2xl overflow-hidden flex flex-col">
@@ -151,7 +151,7 @@ onUnmounted(() => {
             <!-- Sidebar tabs -->
             <div class="flex flex-row sm:flex-col gap-1 border-b sm:border-b-0 sm:border-r border-border-primary bg-zinc-950/20 p-2 sm:p-2.5 sm:w-1/3 shrink-0 overflow-x-auto">
               <button
-                class="flex-1 sm:w-full text-center sm:text-left px-3 py-2 rounded-[6px] text-xs font-medium transition-colors whitespace-nowrap"
+                class="flex-1 sm:w-full text-center sm:text-left px-3 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap"
                 :class="settingsTab === 'general' ? 'bg-btn text-text-primary' : 'text-text-secondary hover:bg-btn/50 hover:text-text-primary'"
                 @click="settingsTab = 'general'"
               >
@@ -159,7 +159,7 @@ onUnmounted(() => {
               </button>
               <button
                 v-if="isSuperAdminUser"
-                class="flex-1 sm:w-full text-center sm:text-left px-3 py-2 rounded-[6px] text-xs font-medium transition-colors whitespace-nowrap"
+                class="flex-1 sm:w-full text-center sm:text-left px-3 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap"
                 :class="settingsTab === 'team' ? 'bg-btn text-text-primary' : 'text-text-secondary hover:bg-btn/50 hover:text-text-primary'"
                 @click="settingsTab = 'team'"
               >
@@ -173,7 +173,7 @@ onUnmounted(() => {
               <div v-if="settingsTab === 'general'" class="text-xs text-text-secondary leading-relaxed flex flex-col gap-4">
                 <div>
                   <p class="font-medium text-text-primary mb-1.5">User Profile</p>
-                  <div class="bg-zinc-50 dark:bg-zinc-950/30 border border-border-secondary rounded-[6px] p-3 flex flex-col gap-1">
+                  <div class="bg-zinc-50 dark:bg-zinc-950/30 border border-border-secondary rounded-md p-3 flex flex-col gap-1">
                     <span class="text-text-tertiary text-[10px] uppercase font-semibold tracking-wider">Logged In As</span>
                     <span class="font-mono text-text-primary font-medium select-all">{{ userMe?.email || '—' }}</span>
                     <span class="text-[10px] text-text-tertiary mt-1">Role: {{ isSuperAdminUser ? 'Administrator' : 'Team Member' }}</span>
@@ -200,16 +200,16 @@ onUnmounted(() => {
                       type="email"
                       placeholder="email@company.com"
                       @keyup.enter="addPending"
-                      class="flex-1 min-w-0 bg-input border border-border-primary focus:border-border-focus rounded-[6px] text-xs outline-none px-3 py-2 text-text-primary placeholder-text-quaternary"
+                      class="flex-1 min-w-0 bg-input border border-border-primary focus:border-border-focus rounded-md text-xs outline-hidden px-3 py-2 text-text-primary placeholder-text-quaternary"
                     />
                     <div class="flex gap-2">
-                      <div class="flex-1 sm:flex-none flex items-center border border-border-primary rounded-[6px] bg-input overflow-hidden focus-within:border-border-focus">
+                      <div class="flex-1 sm:flex-none flex items-center border border-border-primary rounded-md bg-input overflow-hidden focus-within:border-border-focus">
                         <input
                           v-model="pendingPassword"
                           :type="showPasswords ? 'text' : 'password'"
                           placeholder="Password"
                           @keyup.enter="addPending"
-                          class="bg-transparent text-xs outline-none px-3 py-2 text-text-primary placeholder-text-quaternary w-full sm:w-[130px] min-w-0"
+                          class="bg-transparent text-xs outline-hidden px-3 py-2 text-text-primary placeholder-text-quaternary w-full sm:w-[130px] min-w-0"
                         />
                         <button type="button" @click="fillPassword" title="Generate password" class="px-2 py-2 text-text-tertiary hover:text-blue-text transition-colors border-l border-border-primary shrink-0">
                           <Icon name="lucide:refresh-cw" class="h-3 w-3" />
@@ -219,7 +219,7 @@ onUnmounted(() => {
                         type="button"
                         @click="addPending"
                         :disabled="!pendingEmail || !pendingPassword"
-                        class="bg-blue-main hover:bg-blue-main-hover text-white text-xs px-3.5 py-2 rounded-[6px] font-semibold transition-colors disabled:opacity-40 shrink-0"
+                        class="bg-blue-main hover:bg-blue-main-hover text-white text-xs px-3.5 py-2 rounded-md font-semibold transition-colors disabled:opacity-40 shrink-0"
                       >
                         Add
                       </button>
@@ -231,7 +231,7 @@ onUnmounted(() => {
                       {{ showPasswords ? 'Hide passwords' : 'Show passwords' }}
                     </button>
                     <span class="text-[10px] text-text-quaternary">·</span>
-                    <span class="text-[10px] text-text-quaternary">Press <kbd class="font-mono bg-zinc-950/30 px-1 rounded">↵</kbd> to add</span>
+                    <span class="text-[10px] text-text-quaternary">Press <kbd class="font-mono bg-zinc-950/30 px-1 rounded-sm">↵</kbd> to add</span>
                   </div>
                 </div>
 
@@ -244,23 +244,23 @@ onUnmounted(() => {
                   </div>
 
                   <div class="text-xs text-text-tertiary py-2 text-center" v-if="teamLoading">Loading...</div>
-                  <div v-else-if="teamUsers.length || pendingMembers.length" class="flex flex-col border border-border-primary rounded-[6px] divide-y divide-border-primary overflow-hidden">
+                  <div v-else-if="teamUsers.length || pendingMembers.length" class="flex flex-col border border-border-primary rounded-md divide-y divide-border-primary overflow-hidden">
                     <!-- existing -->
                     <div
                       v-for="user in teamUsers" :key="'ex-' + user.email"
                       class="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 px-3 py-2.5 text-xs bg-zinc-950/5"
                     >
-                      <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-main to-purple-600 flex items-center justify-center text-white text-[9px] font-bold uppercase shrink-0">{{ user.email.slice(0,1) }}</div>
+                      <div class="w-5 h-5 rounded-full bg-linear-to-br from-blue-main to-purple-600 flex items-center justify-center text-white text-[9px] font-bold uppercase shrink-0">{{ user.email.slice(0,1) }}</div>
                       <span class="text-text-primary truncate flex-1 min-w-0">{{ user.email }}</span>
-                      <button @click="removeExistingMember(user.email)" class="text-red-text hover:bg-red-bg rounded p-0.5 transition-colors shrink-0 sm:order-last" title="Remove from env string">
+                      <button @click="removeExistingMember(user.email)" class="text-red-text hover:bg-red-bg rounded-sm p-0.5 transition-colors shrink-0 sm:order-last" title="Remove from env string">
                         <Icon name="lucide:x" class="h-3 w-3" />
                       </button>
                       <div class="flex items-center gap-1.5 basis-full sm:basis-auto sm:ml-auto pl-[26px] sm:pl-0">
                         <span class="font-mono text-[10px] text-text-tertiary shrink-0">{{ showPasswords ? user.password : '••••••••' }}</span>
-                        <button @click="copyPassword(user.email, user.password)" class="text-text-tertiary hover:text-blue-text rounded p-0.5 transition-colors shrink-0" :title="'Copy password'">
+                        <button @click="copyPassword(user.email, user.password)" class="text-text-tertiary hover:text-blue-text rounded-sm p-0.5 transition-colors shrink-0" :title="'Copy password'">
                           <Icon :name="copiedPasswordEmail === user.email ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" :class="copiedPasswordEmail === user.email ? 'text-green-400' : ''" />
                         </button>
-                        <span class="text-[10px] text-text-tertiary bg-zinc-950/20 rounded px-1.5 py-0.5 shrink-0">active</span>
+                        <span class="text-[10px] text-text-tertiary bg-zinc-950/20 rounded-sm px-1.5 py-0.5 shrink-0">active</span>
                       </div>
                     </div>
                     <!-- pending -->
@@ -270,19 +270,19 @@ onUnmounted(() => {
                     >
                       <div class="w-5 h-5 rounded-full bg-blue-main/40 border border-blue-border flex items-center justify-center text-blue-text text-[9px] font-bold uppercase shrink-0">{{ m.email.slice(0,1) }}</div>
                       <span class="text-text-primary truncate flex-1 min-w-0">{{ m.email }}</span>
-                      <button @click="removeStagedMember(m.email)" class="text-red-text hover:bg-red-bg rounded p-0.5 transition-colors shrink-0 sm:order-last" title="Remove">
+                      <button @click="removeStagedMember(m.email)" class="text-red-text hover:bg-red-bg rounded-sm p-0.5 transition-colors shrink-0 sm:order-last" title="Remove">
                         <Icon name="lucide:x" class="h-3 w-3" />
                       </button>
                       <div class="flex items-center gap-1.5 basis-full sm:basis-auto sm:ml-auto pl-[26px] sm:pl-0">
                         <span class="font-mono text-[10px] text-text-tertiary shrink-0">{{ showPasswords ? m.password : '••••••••' }}</span>
-                        <button @click="copyPassword(m.email, m.password)" class="text-text-tertiary hover:text-blue-text rounded p-0.5 transition-colors shrink-0" :title="'Copy password'">
+                        <button @click="copyPassword(m.email, m.password)" class="text-text-tertiary hover:text-blue-text rounded-sm p-0.5 transition-colors shrink-0" :title="'Copy password'">
                           <Icon :name="copiedPasswordEmail === m.email ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" :class="copiedPasswordEmail === m.email ? 'text-green-400' : ''" />
                         </button>
-                        <span class="text-[10px] text-blue-text bg-blue-bg rounded px-1.5 py-0.5 shrink-0">new</span>
+                        <span class="text-[10px] text-blue-text bg-blue-bg rounded-sm px-1.5 py-0.5 shrink-0">new</span>
                       </div>
                     </div>
                   </div>
-                  <div v-else class="text-xs text-text-tertiary py-3 text-center italic border border-border-primary rounded-[6px]">
+                  <div v-else class="text-xs text-text-tertiary py-3 text-center italic border border-border-primary rounded-md">
                     No members yet — add them above.
                   </div>
                 </div>
@@ -300,14 +300,14 @@ onUnmounted(() => {
                       </span>
                       <button
                         @click="copyEnvString"
-                        class="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-[6px] transition-colors shrink-0"
+                        class="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md transition-colors shrink-0"
                         :class="isEnvCopied('env') ? 'text-green-400 bg-green-950/40' : 'text-blue-text bg-blue-bg hover:bg-blue-border'"
                       >
                         <Icon :name="isEnvCopied('env') ? 'lucide:check' : 'lucide:copy'" class="h-3 w-3" />
                         {{ isEnvCopied('env') ? 'Copied!' : 'Copy' }}
                       </button>
                     </div>
-                    <div class="font-mono text-[10px] text-text-secondary bg-zinc-50 dark:bg-zinc-950/40 border border-border-secondary rounded-[6px] p-3 overflow-x-auto select-all whitespace-nowrap">
+                    <div class="font-mono text-[10px] text-text-secondary bg-zinc-50 dark:bg-zinc-950/40 border border-border-secondary rounded-md p-3 overflow-x-auto select-all whitespace-nowrap">
                       {{ generatedEnvValue }}
                     </div>
                   </div>

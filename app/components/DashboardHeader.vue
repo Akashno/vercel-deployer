@@ -64,7 +64,7 @@ onMounted(() => {
       <div class="flex items-center gap-2">
         <!-- Project Logo / Avatar -->
         <div
-          class="w-6 h-6 rounded-md bg-gradient-to-br from-blue-main to-purple-600 flex items-center justify-center text-white text-[10px] font-bold uppercase tracking-wider shrink-0"
+          class="w-6 h-6 rounded-md bg-linear-to-br from-blue-main to-purple-600 flex items-center justify-center text-white text-[10px] font-bold uppercase tracking-wider shrink-0"
         >
           {{ projectName ? projectName.slice(0, 2) : 'VP' }}
         </div>
@@ -74,7 +74,7 @@ onMounted(() => {
           <button
             type="button"
             @click="switcherOpen = !switcherOpen"
-            class="flex items-center gap-1 bg-transparent border-0 cursor-pointer text-[18px] font-semibold tracking-[-0.02em] text-text-primary outline-none"
+            class="flex items-center gap-1 bg-transparent border-0 cursor-pointer text-lg font-semibold tracking-[-0.02em] text-text-primary outline-hidden"
           >
             {{ projects.find(p => p.id === currentProjectId)?.name ?? projectName ?? '—' }}
             <Icon name="lucide:chevron-down" class="h-3.5 w-3.5 text-text-tertiary" :class="{ 'rotate-180': switcherOpen }" />
@@ -83,14 +83,14 @@ onMounted(() => {
           <Transition name="fade">
             <div
               v-if="switcherOpen"
-              class="absolute left-0 top-full mt-2.5 min-w-[180px] bg-card-modal border border-border-primary rounded-[8px] shadow-lg py-1 z-20"
+              class="absolute left-0 top-full mt-2.5 min-w-45 bg-card-modal border border-border-primary rounded-lg shadow-lg py-1 z-20"
             >
               <button
                 v-for="p in projects"
                 :key="p.id"
                 type="button"
                 @click="selectProject(p.id)"
-                class="w-full flex items-center justify-between gap-3 bg-transparent border-0 cursor-pointer text-left text-[13px] px-3 py-[7px] transition-colors hover:bg-row-hover"
+                class="w-full flex items-center justify-between gap-3 bg-transparent border-0 cursor-pointer text-left text-[13px] px-3 py-1.75 transition-colors hover:bg-row-hover"
                 :class="p.id === currentProjectId ? 'text-text-primary' : 'text-text-secondary'"
               >
                 <span class="truncate">{{ p.name }}</span>
@@ -99,16 +99,16 @@ onMounted(() => {
             </div>
           </Transition>
         </div>
-        <span v-else class="text-[18px] font-semibold tracking-[-0.02em] text-text-primary">{{ projectName ?? '—' }}</span>
+        <span v-else class="text-lg font-semibold tracking-[-0.02em] text-text-primary">{{ projectName ?? '—' }}</span>
       </div>
-      <span v-if="hasData && deploymentsCount !== undefined" class="bg-border-secondary border border-border-primary rounded-full text-text-secondary text-xs font-medium px-2 py-[1px]">
+      <span v-if="hasData && deploymentsCount !== undefined" class="bg-border-secondary border border-border-primary rounded-full text-text-secondary text-xs font-medium px-2 py-px">
         {{ deploymentsCount }}
       </span>
     </div>
-    <div class="flex items-center gap-[10px] flex-wrap">
+    <div class="flex items-center gap-2.5 flex-wrap">
       <!-- Theme Toggle -->
       <button
-        class="inline-flex items-center bg-card border border-border-primary rounded-[6px] text-text-secondary cursor-pointer text-sm p-2 transition-colors hover:text-text-primary hover:bg-btn"
+        class="inline-flex items-center bg-card border border-border-primary rounded-md text-text-secondary cursor-pointer text-sm p-2 transition-colors hover:text-text-primary hover:bg-btn"
         @click="toggleTheme"
         :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
       >
@@ -117,7 +117,7 @@ onMounted(() => {
 
       <!-- Settings Icon -->
       <button
-        class="inline-flex items-center bg-card border border-border-primary rounded-[6px] text-text-secondary cursor-pointer text-sm p-2 transition-colors hover:text-text-primary hover:bg-btn"
+        class="inline-flex items-center bg-card border border-border-primary rounded-md text-text-secondary cursor-pointer text-sm p-2 transition-colors hover:text-text-primary hover:bg-btn"
         @click="emit('openSettings')"
         title="Settings"
       >
@@ -125,7 +125,7 @@ onMounted(() => {
       </button>
 
       <button
-        class="inline-flex items-center bg-card border border-border-primary rounded-[6px] text-text-tertiary cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:bg-red-bg hover:border-red-border hover:text-red-text"
+        class="inline-flex items-center bg-card border border-border-primary rounded-md text-text-tertiary cursor-pointer text-sm gap-1.5 px-3 py-[6.4px] transition-colors hover:bg-red-bg hover:border-red-border hover:text-red-text"
         @click="logout"
       >
         Logout
